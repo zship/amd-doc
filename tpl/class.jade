@@ -1,0 +1,186 @@
+mixin typeDef(types)
+    each type, i in types
+        - if (type.link)
+            - var title = (type.longName === type.name) ? '' : type.longName
+            a.type(href=type.link, title=title)=type.name
+        - else
+            span.type=type.name
+        - if (type.generic)
+            span.generic &lt;
+            each arg, j in type.args
+                - if (j !== 0)
+                    span.sep=','
+                - if (arg.link)
+                    a.argType(href=arg.link, title=arg.longName)=arg.name
+                - else
+                    span.argType=arg.name
+            span.generic &gt;
+        - if (i < types.length - 1)
+            span.or='|'
+
+
+mixin methodDef(method)
+    - if (method.scope === 'static')
+        span.scope static&nbsp;
+    - if (method.isEnum)
+        span.enum enum&nbsp;
+
+    - if (method.chainable)
+        span.chainable chainable&nbsp;
+
+    - if (method.returns)
+        span.returns
+            mixin typeDef(method.returns.types)
+            &nbsp;
+    - else if (method.types)
+        span.returns
+            mixin typeDef(method.types)
+            &nbsp;
+
+    span.name=method.name
+
+    - if (method.params)
+        span.paren &#40;
+        span.params
+            each param, i in method.params
+                - var clazz = (param.optional) ? 'param optional' : 'param'
+                span(class=clazz)
+                    - if (param.optional)
+                        span.opt [
+                    - if (i !== 0)
+                        span.sep=','
+                    mixin typeDef(param.types)
+                    &nbsp;
+                    span.name=param.name
+                    - if (param.variable)
+                        span.varargs=', ...'
+                    - if (param.optional)
+                        span.opt ]
+        span.paren &#41;
+
+
+- if (cl.module)
+    div.module.section
+        h3.section-header(rel='#/' + module + '#SOverview') Overview
+        div.subsection
+            div.meta
+                a(class='permalink', href='#/' + module + '#SOverview', alt='Permalink to ' + module + ' overview', title='Permalink to ' + module + ' overview')
+                    i.icomoon-hash
+            div.description!=cl.module.description
+
+- if (cl.meta && cl.meta.deps && cl.meta.deps.length)
+    div.dependencies.section
+        h3.section-header(rel='#/' + module + '#SDependencies') Dependencies
+        div.subsection
+            div.meta
+                a(class='permalink', href='#/' + module + '#SDependencies', alt='Permalink to ' + module + ' dependencies', title='Permalink to ' + module + ' dependencies ')
+                    i.icomoon-hash
+            ul
+                each dep in cl.meta.deps
+                    - if (dep.link)
+                        li
+                            a(href=dep.link)=dep.fullName
+                    - else
+                        li=dep.fullName
+
+- if (cl.constructor && cl.constructor.kind === 'class')
+    div.constructors.section
+        h3.section-header(rel='#/' + module + '#SConstructor') Constructor
+        div.constructor.subsection
+            div.meta
+                a(class='permalink', href='#/' + module + '#SConstructor', alt='Permalink to ' + cl.constructor.longName, title='Permalink to ' + cl.constructor.longName)
+                    i.icomoon-hash
+                a(class='srclink', alt='View Source', title='View Source', href=config.repoview + cl.constructor.meta.path + '/' + cl.constructor.meta.filename + '#L' + cl.constructor.meta.lineno)
+                    i.icomoon-code
+            h4.subsection-header
+                mixin methodDef(cl.constructor)
+            div.description!=cl.constructor.description
+
+- if (cl.properties && Object.keys(cl.properties).length)
+    div.properties.section
+        h3.section-header(rel='#/' + module + '#SProperties') Properties
+        each key in Object.keys(cl.properties).sort()
+            - var prop = cl.properties[key]
+            - var clazz = (prop.inherited || prop.overridden) ? 'inherited property subsection' : 'property subsection'
+            div(class=clazz, rel=prop.link)
+                h4.subsection-header
+                    mixin methodDef(prop)
+                    div.meta
+                        a(class='permalink', href=prop.link, alt='Permalink to ' + prop.longName, title='Permalink to ' + prop.longName)
+                            i.icomoon-hash
+                        a(class='srclink', alt='View Source', title='View Source', href=config.repoview + prop.meta.path + '/' + prop.meta.filename + '#L' + prop.meta.lineno)
+                            i.icomoon-code
+                - if (prop.isEnum)
+                    - var isString = (prop.types && prop.types[0].name === 'String')
+                    - var isNumber = (prop.types && prop.types[0].name === 'Number')
+                    div.enum-fields
+                        span.brace='{'
+                        each subprop in prop.properties
+                            h5.enum-field
+                                span.name=subprop.name
+                                span.equals=' = '
+                                - var propClass = isString ? 'defaultValue string' : isNumber ? 'defaultValue number' : 'defaultValue'
+                                span(class=propClass)
+                                    - if (!!isString)
+                                        span='"'
+                                    span.value=subprop.defaultvalue
+                                    - if (!!isString)
+                                        span='"'
+                        span.brace='}'
+                - if (prop.inherited)
+                    div.inherit-info
+                        div.inner
+                            span inherited from&nbsp;
+                            a(title=prop.inherited.longName, href=prop.inherited.link)=prop.inherited.name
+                - if (prop.overridden)
+                    div.override-info
+                        div.inner
+                            span overridden from&nbsp;
+                            a(title=prop.overridden.longName, href=prop.overridden.link)=prop.overridden.name
+                div.description!=prop.description
+
+- if (cl.methods && Object.keys(cl.methods).length)
+    div.methods.section
+        h3.section-header(rel='#/' + module + '#SMethods') Methods
+        each key in Object.keys(cl.methods).sort()
+            - var method = cl.methods[key]
+            - var clazz = (method.inherited || method.overridden) ? 'inherited method subsection' : 'method subsection'
+            div(class=clazz, rel=method.link)
+                h4.subsection-header
+                    mixin methodDef(method)
+                    div.meta
+                        a(class='permalink', href=method.link, alt='Permalink to ' + method.longName, title='Permalink to ' + method.longName)
+                            i.icomoon-hash
+                        a(class='srclink', alt='View Source', title='View Source', href=config.repoview + method.meta.path + '/' + method.meta.filename + '#L' + method.meta.lineno)
+                            i.icomoon-code
+                - if (method.inherited)
+                    div.inherit-info
+                        div.inner
+                            span inherited from&nbsp;
+                            a(title=method.inherited.longName, href=method.inherited.link)=method.inherited.name
+                - else if (method.imported)
+                    div.import-info
+                        div.inner
+                            span imported from&nbsp;
+                            a(title=method.imported.module, href=config.repoview + method.imported.path + '/' + method.imported.filename + '#L' + method.imported.lineno)=method.imported.module
+                - if (method.overridden)
+                    div.override-info
+                        div.inner
+                            span overridden from&nbsp;
+                            a(title=method.overridden.longName, href=method.overridden.link)=method.overridden.name
+                div.description!=method.description
+
+- if (cl.jquery && Object.keys(cl.jquery).length)
+    div.jquery.section
+        h3.section-header(rel='#/' + module + '#SjQuery') jQuery Plugins
+        each key in Object.keys(cl.jquery).sort()
+            - var method = cl.jquery[key]
+            div.jquery.subsection(rel=method.link)
+                h4.subsection-header
+                    mixin methodDef(method)
+                    div.meta
+                        a(class='permalink', href=method.link, alt='Permalink to ' + method.longName, title='Permalink to ' + method.longName)
+                            i.icomoon-hash
+                        a(class='srclink', alt='View Source', title='View Source', href=config.repoview + method.meta.path + '/' + method.meta.filename + '#L' + method.meta.lineno)
+                            i.icomoon-code
+                div.description!=method.description

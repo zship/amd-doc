@@ -1,0 +1,77 @@
+h2
+    span.moduleName=module
+    -if (cl.extends)
+        span.extends=' extends '
+            each base, i in cl.extends
+                a.superclass(href=base.link, title=base.longName)=base.name
+                - if (i < cl.extends.length - 1)
+                    span.sep=','
+
+- if (cl.module)
+    div.module
+        h3
+            a(href='#/' + module + '#SOverview') Overview
+
+- if (cl.meta && cl.meta.deps)
+    div.dependencies
+        h3
+            a(href='#/' + module + '#SDependencies') Dependencies
+
+- if (cl.constructor && cl.constructor.kind === 'class')
+    div.constructor
+        h3 
+            a(href='#/' + module + '#SConstructor') Constructor
+
+- if (cl.properties && Object.keys(cl.properties).length)
+    div.properties
+        h3
+            a(href='#/' + module + '#SProperties') Properties
+        ul
+            each key in Object.keys(cl.properties).sort()
+                - var prop = cl.properties[key]
+                - var clazz = (prop.inherited || prop.overridden) ? 'inherited property' : 'property'
+                li(class=clazz)
+                    a.name(href=prop.link, rel=prop.longName)=prop.name
+                    span=' : '
+                    span.returns
+                        each type, j in prop.types
+                            span.returnType=type.name
+                            - if (j < prop.types.length - 1)
+                                span.or='|'
+                    &nbsp;
+
+- if (cl.methods && Object.keys(cl.methods).length)
+    div.methods
+        h3
+            a(href='#/' + module + '#SMethods') Methods
+        ul
+            each key in Object.keys(cl.methods).sort()
+                - var method = cl.methods[key]
+                - var clazz = (method.inherited || method.overridden) ? 'inherited method' : 'method'
+                li(class=clazz)
+                    a.name(href=method.link, rel=method.longName)=method.name
+                    span=' : '
+                    span.returns
+                        each type, j in method.returns.types
+                            span.returnType=type.name
+                            - if (j < method.returns.types.length - 1)
+                                span.or='|'
+                        &nbsp;
+
+- if (cl.jquery && Object.keys(cl.jquery).length)
+    div.jquery
+        h3
+            a(href='#/' + module + '#SjQuery') jQuery Plugins
+        ul
+            each key in Object.keys(cl.jquery).sort()
+                - var method = cl.jquery[key]
+                - var clazz = (method.inherited || method.overridden) ? 'inherited jquery' : 'jquery'
+                li(class=clazz)
+                    a.name(href=method.link, rel=method.longName)=method.name
+                    span=' : '
+                    span.returns
+                        each type, j in method.returns.types
+                            span.returnType=type.name
+                            - if (j < method.returns.types.length - 1)
+                                span.or='|'
+                        &nbsp;
