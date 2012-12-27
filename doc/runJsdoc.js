@@ -15,7 +15,7 @@ var runJsdoc = function(files) {
 
 	child.exec(command, {maxBuffer: 2000000}, function(error, stdout) {
 		if (error !== null) {
-			deferred.reject(error);
+			throw new Error(error);
 		}
 
 		//strip out error-causing lines
