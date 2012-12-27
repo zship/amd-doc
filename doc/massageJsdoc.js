@@ -69,7 +69,7 @@ var massageJsdoc = function(json, deps) {
 		//convention: class short names are the last part of their module's name (e.g. 'joss/geometry/Point' -> 'Point')
 		clazz.name = record.moduleShortName;
 		//console.log(JSON.stringify(clazz, false, 4));
-		
+
 		//update "static" members of this class to point to the new class name
 		db(function() {
 			return !!(
@@ -387,6 +387,11 @@ var massageJsdoc = function(json, deps) {
 						method.chainable = true;
 					}
 					else if (method.returns[0].type) {
+						//flag methods returning a new instance of their class
+						if (method.returns[0].type.names.length === 1 && Types.getType(method.returns[0].type.names[0]) === Types.getType(method.memberof)) {
+							method.chainable = false;
+						}
+
 						method.returns[0].type.names.forEach(function(name, i) {
 							var type = Types.getType(name, method.longName + ' return type #' + i);
 							if (!type) {
