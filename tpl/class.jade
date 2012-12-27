@@ -1,10 +1,15 @@
 mixin typeDef(types)
     each type, i in types
+        - var clazz = 'type'
+        - if (i === 0)
+            - clazz = clazz + ' first'
+        - if (i === types.length)
+            - clazz = clazz + ' last'
         - if (type.link)
             - var title = (type.longName === type.name) ? '' : type.longName
-            a.type(href=type.link, title=title)=type.name
+            a(class=clazz, href=type.link, title=title)=type.name
         - else
-            span.type=type.name
+            span(class=clazz)=type.name
         - if (type.generic)
             span.generic &lt;
             each arg, j in type.args
@@ -42,13 +47,17 @@ mixin methodDef(method)
     span.name=method.name
 
     - if (method.params)
-        span.paren &#40;
+        span.paren.left &#40;
         span.params
             each param, i in method.params
                 - var clazz = (param.optional) ? 'param optional' : 'param'
+                - if (i === 0)
+                    - clazz = clazz + ' first'
+                - if (i === method.params.length)
+                    - clazz = clazz + ' last'
                 span(class=clazz)
                     - if (param.optional)
-                        span.opt [
+                        span.opt.left [
                     - if (i !== 0)
                         span.sep=','
                     mixin typeDef(param.types)
@@ -57,8 +66,8 @@ mixin methodDef(method)
                     - if (param.variable)
                         span.varargs=', ...'
                     - if (param.optional)
-                        span.opt ]
-        span.paren &#41;
+                        span.opt.right ]
+        span.paren.right &#41;
 
 
 - if (cl.module)

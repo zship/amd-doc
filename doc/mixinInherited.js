@@ -249,6 +249,11 @@ var mixinInherited = function(graph) {
 						};
 						clazz[type][key].link = prop.link.replace(superclassName, className);
 						clazz[type][key].longName = prop.longName.replace(superclassName, className);
+
+						//"chainable" property only applies to methods returning
+						//instances of their class, which is impossible for an
+						//inherited method
+						delete clazz[type][key].chainable;
 					}
 					//overridden
 					else {
