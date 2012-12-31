@@ -1,8 +1,6 @@
 'use strict';
 
 
-var constants = require('../constants.js');
-var requirejs = require(constants.rjs);
 var grunt = require('grunt/lib/grunt.js');
 var util = require('./util.js');
 var Deferred = require('../lib/deferreds.js').Deferred;
@@ -12,6 +10,7 @@ var traceDependencies = function(files) {
 
 	var deferred = new Deferred();
 
+	var requirejs = require('../lib/r.js');
 	requirejs.config({
 		baseUrl: __dirname,
 		nodeRequire: require
@@ -31,6 +30,8 @@ var traceDependencies = function(files) {
 				deps[moduleName] = parse.findDependencies(filePath, contents);
 			}
 			catch(e) {
+				//console.error(e.message);
+				//console.error(e.stack);
 				deps[moduleName] = [];
 			}
 
