@@ -32,7 +32,6 @@ var traceDependencies = require('./doc/traceDependencies.js');
 var amddoc = {};
 
 
-//idea: put a search box above class list that filters the class list
 amddoc.compile = function(opts) {
 
 	var totalStopwatch = new Stopwatch().start();
