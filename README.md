@@ -27,8 +27,8 @@ var amddoc = require('amd-doc');
 
 amddoc.compile({
 	//globbing-supported String or Array of Strings with process-relative
-	//files to process for documentation
-	include: 'src/deferreds/**/*.js',
+	//files to process for documentation. Entries starting with "!" will be excluded.
+	files: 'src/deferreds/**/*.js',
 
 	//directory to output generated HTML (default = 'doc/out')
 	out: 'doc/out',

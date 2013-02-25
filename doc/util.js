@@ -4,6 +4,7 @@
 var crypto = require('crypto');
 var path = require('path');
 var grunt = require('grunt/lib/grunt.js');
+var amd = require('grunt-lib-amd');
 var _ = require('underscore');
 
 
@@ -58,12 +59,7 @@ var util = {
 
 
 	fileToModuleName: function(filePath) {
-		var srcDirectory = path.resolve(process.cwd() + '/' + util.rjsconfig.baseUrl);
-		var absolutePath = path.resolve(process.cwd() + '/' + filePath);
-
-		filePath = filePath.replace(/\.js/, '');
-
-		return absolutePath.replace(srcDirectory + '/', '').replace('.js', '');
+		return amd.fileToModuleName(filePath, util.rjsconfig);
 	},
 
 
@@ -88,23 +84,6 @@ var util = {
 		});
 
 		return ret;
-	},
-
-
-	//transform globbed config values into lists of files
-	expand: function(arr) {
-		arr = arr || [];
-		var files = [];
-
-		if (_.isString(arr)) {
-			arr = [arr];
-		}
-
-		arr.forEach(function(val) {
-			files = files.concat(grunt.file.expandFiles(val));
-		});
-
-		return _.uniq(files);
 	}
 
 };

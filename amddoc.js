@@ -6,11 +6,11 @@ var path = require('path');
 var grunt = require('grunt/lib/grunt.js');
 var _ = require('underscore');
 var constants = require('./constants.js');
-var requirejs = require(constants.rjs);
-var Deferred = require('./lib/deferreds.js').Deferred;
-var Deferreds = require('./lib/deferreds.js').Deferreds;
+var Deferred = require('deferreds').Deferred;
+var Deferreds = require('deferreds').Deferreds;
 
 var util = require('./doc/util.js');
+var amd = require('grunt-lib-amd');
 var Stopwatch = require('./doc/Stopwatch.js');
 
 var Types = require('./doc/Types.js');
@@ -48,29 +48,16 @@ amddoc.compile = function(opts) {
 	constants.mixindir = path.resolve(process.cwd() + '/' + constants.mixindir);
 	constants.fileHashesPath = path.resolve(constants.cachedir + '/cache.json');
 
-	['include', 'exclude'].forEach(function(name) {
-		opts[name] = util.expand(opts[name]);
-	});
-
-	opts.include = _.difference(opts.include, opts.exclude);
-
 	Types.populateTypeMap(opts.types || []);
 
-	var files = opts.include;
+	var files = grunt.file.expand({filter: 'isFile'}, opts.files);
 	var stopwatch = new Stopwatch().start();
 
 	grunt.log.subhead('Generating documentation for ' + files.length + ' files');
 	grunt.log.writeln('===========================================================');
 
 
-	var rjsconfig = opts.requirejs;
-
-	requirejs.config({
-		baseUrl: process.cwd() + '/src',
-		packages: rjsconfig.packages,
-		nodeRequire: require
-	});
-
+	var rjsconfig = amd.loadConfig(opts.requirejs);
 	util.rjsconfig = rjsconfig;
 
 
@@ -83,7 +70,7 @@ amddoc.compile = function(opts) {
 	var markdownDocumentedNames;
 
 
-	return Deferreds.waterfall([
+	return Deferreds.pipe([
 
 		function() {
 			cache = getJsdocCache(files);
@@ -148,12 +135,7 @@ amddoc.compile = function(opts) {
 		function() {
 			grunt.log.writeln('');
 			grunt.log.writeln('Tracing AMD dependencies...');
-
-			var deferred = new Deferred();
-			traceDependencies(files).then(function(deps) {
-				deferred.resolve(deps);
-			});
-			return deferred.promise();
+			return traceDependencies(files);
 		},
 
 

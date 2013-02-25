@@ -8,7 +8,7 @@ var constants = require('../constants.js');
 
 
 var mixinMarkdown = function(graph) {
-	var mixins = grunt.file.expandFiles(constants.mixindir + '/**');
+	var mixins = grunt.file.expand({filter: 'isFile'}, constants.mixindir + '/**');
 	var documentedNames = [];
 
 	mixins.every(function(path) {
