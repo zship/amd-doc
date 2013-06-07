@@ -4,7 +4,7 @@
 var grunt = require('grunt/lib/grunt.js');
 var child = require("child_process");
 var constants = require('../constants.js');
-var Deferred = require('deferreds').Deferred;
+var Deferred = require('deferreds/Deferred');
 
 
 var runJsdoc = function(files) {
@@ -17,11 +17,6 @@ var runJsdoc = function(files) {
 		if (error !== null) {
 			throw new Error(error);
 		}
-
-		//strip out error-causing lines
-		stdout = stdout.replace(/<CircularRef>/gm, "\"CircularRef\"");
-		stdout = stdout.replace(/<Object>/gm, "\"Object\"");
-		stdout = stdout.replace(/:\sundefined/gm, ": \"undef\"");
 
 		var result = JSON.parse(stdout);
 		deferred.resolve({out: result});

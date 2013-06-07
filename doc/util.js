@@ -4,7 +4,6 @@
 var crypto = require('crypto');
 var path = require('path');
 var grunt = require('grunt/lib/grunt.js');
-var amd = require('grunt-lib-amd');
 var _ = require('underscore');
 
 
@@ -55,11 +54,6 @@ var util = {
 
 		absolutePath = path.resolve(srcDirectory + '/' + declaredName + '.js');
 		return absolutePath.replace(srcDirectory + '/', '').replace('.js', '');
-	},
-
-
-	fileToModuleName: function(filePath) {
-		return amd.fileToModuleName(filePath, util.rjsconfig);
 	},
 
 

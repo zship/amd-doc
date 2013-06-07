@@ -1,6 +1,5 @@
 {
 	"name": "amd-doc",
-	"title": "amd-doc",
 	"description": "Documentation generator for AMD-based projects",
 	"version": "0.2.0",
 	"homepage": "https://github.com/zship/amd-doc",
@@ -13,14 +12,15 @@
 	"main": "amddoc.js",
 	"dependencies": {
 		"grunt": "0.4.x",
-		"grunt-lib-amd": "0.1.x",
+		"mout": "0.6.x",
+		"amd-tools": "0.x",
 		"underscore": "1.4.x",
-		"deferreds": "0.2.x",
+		"deferreds": "1.x",
 		"jade": "0.27.x",
 		"marked": "0.2.x",
 		"highlight.js": "7.3.x",
 		"taffy": "2.6.x",
-		"jsdoc": "git://github.com/jsdoc3/jsdoc.git#v3.1.1"
+		"jsdoc": "3.2.x"
 	},
 	"keywords": [
 		"gruntplugin",

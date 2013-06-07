@@ -6,17 +6,15 @@ var path = require('path');
 var grunt = require('grunt/lib/grunt.js');
 var _ = require('underscore');
 var constants = require('./constants.js');
-var Deferred = require('deferreds').Deferred;
-var Deferreds = require('deferreds').Deferreds;
+var Deferred = require('deferreds/Deferred');
+var pipe = require('deferreds/pipe');
+var loadConfig = require('amd-tools/util/loadConfig');
 
 var util = require('./doc/util.js');
-var amd = require('grunt-lib-amd');
 var Stopwatch = require('./doc/Stopwatch.js');
 
 var Types = require('./doc/Types.js');
 var runJsdoc = require('./doc/runJsdoc.js');
-var cacheJsdoc = require('./doc/cacheJsdoc.js');
-var getJsdocCache = require('./doc/getJsdocCache.js');
 var massageJsdoc = require('./doc/massageJsdoc.js');
 var mixinMarkdown = require('./doc/mixinMarkdown.js');
 var transformLongNames = require('./doc/transformLongNames.js');
@@ -57,12 +55,11 @@ amddoc.compile = function(opts) {
 	grunt.log.writeln('===========================================================');
 
 
-	var rjsconfig = amd.loadConfig(opts.requirejs);
+	var rjsconfig = loadConfig(opts.requirejs);
 	util.rjsconfig = rjsconfig;
 
 
 	var doclets = []; //jsdoc output
-	var cache = {}; //cache info for previous doclets
 	var graph = {}; //object graph to be passed to templates
 
 	var documentedNames;
@@ -70,37 +67,17 @@ amddoc.compile = function(opts) {
 	var markdownDocumentedNames;
 
 
-	return Deferreds.pipe([
-
-		function() {
-			cache = getJsdocCache(files);
-
-			doclets = [];
-			cache.fresh.forEach(function(filePath) {
-				grunt.verbose.write('\t');
-				doclets = doclets.concat(JSON.parse(grunt.file.read(filePath)));
-			});
-
-			return [cache, doclets];
-		},
-
+	return pipe([
 
 		function() {
 			grunt.log.writeln('');
-			grunt.log.writeln('Running jsdoc on ' + cache.stale.length + ' files (' + cache.fresh.length + ' cached)...');
+			grunt.log.writeln('Running jsdoc on ' + files.length + ' files...');
 
 			var deferred = new Deferred();
 
-			if (!cache.stale.length) {
-				deferred.resolve();
-				return deferred.promise();
-			}
-
-			grunt.verbose.writeln(cache.stale.join(' '));
-
-			runJsdoc(cache.stale).then(function(result) {
+			runJsdoc(files).then(function(result) {
 				var out = result.out;
-				//console.log(JSON.stringify(out, false, 4));
+				console.log(JSON.stringify(out, false, 4));
 				doclets = doclets.concat(out);
 				deferred.resolve({out: out});
 			});
@@ -109,33 +86,10 @@ amddoc.compile = function(opts) {
 		},
 
 
-		function(result) {
-			grunt.log.ok(stopwatch.elapsed() + 'ms');
-			stopwatch.reset();
-
-			grunt.log.writeln('');
-			grunt.log.writeln('Updating jsdoc caches for future runs...');
-
-			cache.stale.forEach(function(filePath) {
-				cache.index[filePath] = util.hashFile(filePath);
-			});
-
-			grunt.verbose.write('\t');
-			grunt.file.write(constants.fileHashesPath, JSON.stringify(cache.index, false, 2), 'utf-8');
-
-			if (result && result.out) {
-				cacheJsdoc(result.out);
-			}
-
-			grunt.log.ok(stopwatch.elapsed() + 'ms');
-			stopwatch.reset();
-		},
-
-
 		function() {
 			grunt.log.writeln('');
 			grunt.log.writeln('Tracing AMD dependencies...');
-			return traceDependencies(files);
+			return traceDependencies(files, rjsconfig);
 		},
 
 
@@ -148,7 +102,7 @@ amddoc.compile = function(opts) {
 
 			//console.log(JSON.stringify(graph, false, 4));
 
-			var result = massageJsdoc(doclets, deps);
+			var result = massageJsdoc(doclets, deps, rjsconfig);
 			graph = result.graph;
 			documentedNames = result.documented;
 			undocumentedNames = result.undocumented;
@@ -287,7 +241,7 @@ amddoc.compile = function(opts) {
 		grunt.log.writeln('Total Time: ' + totalStopwatch.elapsed() + 'ms');
 	}).fail(function(err) {
 		console.log('failed');
-		console.error(err);
+		console.error(err.stack);
 	});
 
 };

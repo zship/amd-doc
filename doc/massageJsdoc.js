@@ -4,14 +4,16 @@
 var path = require('path');
 var fs = require('fs');
 var taffy = require('taffy');
-var util = require('./util.js');
 var Types = require('./Types.js');
+var Modules = require('amd-tools/util/Modules');
 
 
-var massageJsdoc = function(json, deps) {
+var massageJsdoc = function(json, deps, rjsconfig) {
 
 	var documentedNames = {};
 	var undocumentedNames = [];
+
+	//console.log(JSON.stringify(json, false, 4));
 
 
 	var db = taffy(json);
@@ -28,7 +30,7 @@ var massageJsdoc = function(json, deps) {
 	db().each(function(record) {
 		if (record && record.meta && record.meta.path) {
 			var fileName = record.meta.path + '/' + record.meta.filename;
-			cache[fileName] = cache[fileName] || util.fileToModuleName(fileName);
+			cache[fileName] = cache[fileName] || Modules.getId(fileName, rjsconfig);
 
 			var moduleName = cache[fileName];
 			var moduleShortName;
@@ -73,7 +75,10 @@ var massageJsdoc = function(json, deps) {
 		//update "static" members of this class to point to the new class name
 		db(function() {
 			return !!(
-				this.memberof === '<anonymous>~' + clazz.name &&
+				(
+					this.memberof === '<anonymous>~' + clazz.name ||
+					this.memberof === clazz.name
+				) &&
 				this.meta &&
 				this.meta.path === clazz.meta.path &&
 				this.meta.filename === clazz.meta.filename
@@ -210,6 +215,24 @@ var massageJsdoc = function(json, deps) {
 *            }
 *        });
 */
+	var modules = {};
+	db().each(function(record) {
+		if (!record.module) {
+			return;
+		}
+		modules[record.module] = modules[record.module] || [];
+		modules[record.module].push(record);
+
+		var moduleName = record.module;
+		var moduleShortName = record.module.split('/').pop();
+		Types.addType(moduleName, {
+			userDefined: true,
+			longName: moduleName,
+			name: moduleShortName,
+			link: '#/' + moduleName
+		});
+	});
+	//console.log(JSON.stringify(modules, false, 4));
 
 
 	//collect a map of longnames to short aliases for classes, to be used
@@ -245,14 +268,30 @@ var massageJsdoc = function(json, deps) {
 
 
 	var graph = {};
-	db({kind: ['class', 'namespace']}).each(function(record) {
+	Object.keys(modules).forEach(function(moduleName) {
+		//console.log(moduleName);
 
-		var module = record.module;
-		var fileName = record.meta.path + '/' + record.meta.filename;
+		var module = modules[moduleName];
+		var kind = (function() {
+			var isClassModule = module.filter(function(record) {
+				return record.kind === 'class';
+			}).length;
+			if (isClassModule) {
+				return 'class';
+			}
+			var isNamespaceModule = module.filter(function(record) {
+				return record.kind === 'namespace';
+			}).length;
+			if (isNamespaceModule) {
+				return 'namespace';
+			}
+			return 'misc';
+		})();
+		var fileName = module[0].meta.path + '/' + module[0].meta.filename;
 
 		//see if items in the dependency array are in the type map (for linking
 		//in final documentation)
-		deps[module].forEach(function(dep) {
+		deps[moduleName].forEach(function(dep) {
 			var type = Types.getType(dep.fullName, fileName + ' requirejs dependency');
 			if (type && type.link) {
 				dep.link = type.link;
@@ -260,20 +299,22 @@ var massageJsdoc = function(json, deps) {
 		});
 
 
-		record.description = record.description || '';
+		//record.description = record.description || '';
 
-		graph[module] = {};
-		graph[module]['meta'] = {
-			deps: deps[module]
+		graph[moduleName] = {};
+		graph[moduleName]['meta'] = {
+			deps: deps[moduleName]
 		};
-		graph[module]['constructor'] = {};
-		graph[module]['properties'] = {};
-		graph[module]['methods'] = {};
-		graph[module]['jquery'] = {};
+		graph[moduleName]['constructor'] = {};
+		graph[moduleName]['properties'] = {};
+		graph[moduleName]['methods'] = {};
+		graph[moduleName]['jquery'] = {};
 
 
-		if (record.kind === 'class') {
-			var constructor = graph[module]['constructor'] = record;
+		if (kind === 'class') {
+			var constructor = graph[moduleName]['constructor'] = module.filter(function(record) {
+				return record.kind === 'class';
+			})[0];
 			constructor.longName = constructor.longname;
 			constructor.link = Types.getType(constructor.longName).link;
 			constructor.description = constructor.description || '';
@@ -297,157 +338,139 @@ var massageJsdoc = function(json, deps) {
 		}
 
 
-		db({kind: 'member'}, {memberof: module}).each(function(record) {
-			var member = graph[module]['properties'][record.name] = record;
-			member.longName = member.longname;
-			member.link = '#/' + member.longName;
+		module
+			.filter(function(record) {
+				return record.kind === 'member';
+			})
+			.forEach(function(record) {
+				var member = graph[moduleName]['properties'][record.name] = record;
+				member.longName = member.longname;
+				member.link = '#/' + member.longName;
 
-			if (!member.type || !member.type.names) {
-				member.types = [Types.getType(null)];
-			}
-			else {
-				member.types = [];
-				member.type.names.forEach(function(name) {
-					var type = Types.getType(name, member.longName + ' type');
-					if (!type) {
-						type = Types.defaultType(name);
-					}
-					member.types.push(type);
-				});
-			}
-
-			member.description = member.description || '';
-		});
-
-
-		db({isEnum: true}, {memberof: module}).each(function(record) {
-			var member = graph[module]['properties'][record.name] = record;
-			member.longName = member.longname;
-			member.link = '#/' + member.longName;
-
-			if (!member.type || !member.type.names) {
-				member.types = [Types.getType(null)];
-			}
-			else {
-				member.types = [];
-				member.type.names.forEach(function(name) {
-					var type = Types.getType(name, member.longName + ' type');
-					if (!type) {
-						type = Types.defaultType(name);
-					}
-					member.types.push(type);
-				});
-			}
-
-			member.description = member.description || '';
-		});
-
-
-		db({kind: 'function'}, {memberof: module}).each(function(record) {
-			try {
-
-				//console.log(JSON.stringify(record, null, 4));
-				var method;
-
-				if (record.longname.search(/\$\.fn/g) !== -1) {
-					method = graph[module]['jquery'][record.name] = record;
-					method.scope = ''; //avoid 'static' qualifier
+				if (!member.type || !member.type.names) {
+					member.types = [Types.getType(null)];
 				}
 				else {
-					method = graph[module]['methods'][record.name] = record;
-				}
-
-				method.longName = method.longname;
-				method.link = '#/' + method.longName;
-				method.description = method.description || '';
-
-				method.params = method.params || [];
-				method.params.forEach(function(param) {
-					if (!param.type || !param.type.names) {
-						param.types = [Types.getType(null)];
-						return true;
-					}
-
-					param.types = [];
-					param.type.names.forEach(function(name, i) {
-						var type = Types.getType(name, method.longName + ' parameter #' + i);
+					member.types = [];
+					member.type.names.forEach(function(name) {
+						var type = Types.getType(name, member.longName + ' type');
 						if (!type) {
 							type = Types.defaultType(name);
 						}
-						param.types.push(type);
+						member.types.push(type);
 					});
-				});
+				}
 
-				if (method.returns && method.returns.length) {
-					method.returns.types = [];
+				member.description = member.description || '';
+			});
 
-					//special: '@return this' sets the return type to the class' type
-					if (method.returns[0].description === 'this' && method.memberof) {
-						method.returns.types.push(Types.getType(method.memberof));
-						method.chainable = true;
+
+		module
+			.filter(function(record) {
+				return record.isEnum;
+			})
+			.forEach(function(record) {
+				var member = graph[moduleName]['properties'][record.name] = record;
+				member.longName = member.longname;
+				member.link = '#/' + member.longName;
+
+				if (!member.type || !member.type.names) {
+					member.types = [Types.getType(null)];
+				}
+				else {
+					member.types = [];
+					member.type.names.forEach(function(name) {
+						var type = Types.getType(name, member.longName + ' type');
+						if (!type) {
+							type = Types.defaultType(name);
+						}
+						member.types.push(type);
+					});
+				}
+
+				member.description = member.description || '';
+			});
+
+
+		module
+			.filter(function(record) {
+				return record.kind === 'function';
+			})
+			.forEach(function(record) {
+				try {
+
+					//console.log(JSON.stringify(record, null, 4));
+					var method;
+
+					if (record.longname.search(/\$\.fn/g) !== -1) {
+						method = graph[moduleName]['jquery'][record.name] = record;
+						method.scope = ''; //avoid 'static' qualifier
 					}
-					else if (method.returns[0].type) {
-						//flag methods returning a new instance of their class
-						if (method.returns[0].type.names.length === 1 && Types.getType(method.returns[0].type.names[0]) === Types.getType(method.memberof)) {
-							method.chainable = false;
+					else {
+						method = graph[moduleName]['methods'][record.name] = record;
+					}
+
+					method.longName = method.longname;
+					method.link = '#/' + method.longName;
+					method.description = method.description || '';
+
+					method.params = method.params || [];
+					method.params.forEach(function(param) {
+						if (!param.type || !param.type.names) {
+							param.types = [Types.getType(null)];
+							return true;
 						}
 
-						method.returns[0].type.names.forEach(function(name, i) {
-							var type = Types.getType(name, method.longName + ' return type #' + i);
+						//jsdoc outputs "undefined" instead of undefined
+						Object.keys(param).forEach(function(key) {
+							if (param[key] === 'undefined') {
+								param[key] = false;
+							}
+						});
+
+						param.types = [];
+						param.type.names.forEach(function(name, i) {
+							var type = Types.getType(name, method.longName + ' parameter #' + i);
 							if (!type) {
 								type = Types.defaultType(name);
 							}
-							method.returns.types.push(type);
+							param.types.push(type);
 						});
+					});
+
+					if (method.returns && method.returns.length) {
+						method.returns.types = [];
+
+						//special: '@return this' sets the return type to the class' type
+						if (method.returns[0].description === 'this' && method.memberof) {
+							method.returns.types.push(Types.getType(method.memberof));
+							method.chainable = true;
+						}
+						else if (method.returns[0].type) {
+							//flag methods returning a new instance of their class
+							if (method.returns[0].type.names.length === 1 && Types.getType(method.returns[0].type.names[0]) === Types.getType(method.memberof)) {
+								method.chainable = false;
+							}
+
+							method.returns[0].type.names.forEach(function(name, i) {
+								var type = Types.getType(name, method.longName + ' return type #' + i);
+								if (!type) {
+									type = Types.defaultType(name);
+								}
+								method.returns.types.push(type);
+							});
+						}
 					}
+					else {
+						method.returns = {types: [Types.getType(null)]};
+					}
+
 				}
-				else {
-					method.returns = {types: [Types.getType(null)]};
+				catch(e) {
+					console.error('Error processing ' + record.longname);
+					throw e;
 				}
-
-			}
-			catch(e) {
-				console.error('Error processing ' + record.longname);
-				throw e;
-			}
-
-			//accessor (get/set) detection, for nicer display than, for example, Number|Rect width([Number w])
-/*
-*                if (method.params.length === 1 && method.returns.types.length === 2 && method.returns.types.filter(function(type) {
-*                    return type.longName === method.params[0].types[0].longName;
-*                }).length === 1) {
-*                    var getType = method.params[0].types[0];
-*                    var setReturnType;
-*
-*                    method.returns.types.forEach(function(type) {
-*                        if (type.longName !== method.params[0].types[0].longName) {
-*                            setReturnType = type;
-*                        }
-*                    });
-*
-*                    method.get = {
-*                        name: method.name,
-*                        params: [],
-*                        returns: {
-*                            types: [getType]
-*                        }
-*                    };
-*
-*                    method.set = {
-*                        name: method.name,
-*                        params: [{
-*                            name: method.params[0].name,
-*                            optional: false,
-*                            types: [getType]
-*                        }],
-*                        returns: {
-*                            types: [setReturnType]
-*                        }
-*                    };
-*                }
-*/
-
-		});
+			});
 
 	});
 
