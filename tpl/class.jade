@@ -1,4 +1,5 @@
 mixin typeDef(types)
+    - types = types || []
     each type, i in types
         - var clazz = 'type'
         - if (i === 0)
@@ -37,7 +38,7 @@ mixin methodDef(method)
 
     - if (method.returns)
         span.returns
-            mixin typeDef(method.returns.types)
+            mixin typeDef(method.returns[0].types)
             &nbsp;
     - else if (method.types)
         span.returns
@@ -113,7 +114,7 @@ mixin methodDef(method)
         each key in Object.keys(cl.properties).sort()
             - var prop = cl.properties[key]
             - var clazz = (prop.inherited || prop.overridden) ? 'inherited property subsection' : 'property subsection'
-            div(class=clazz, rel=prop.link)
+            div(class=clazz, rel=prop.longname)
                 h4.subsection-header
                     mixin methodDef(prop)
                     div.meta
@@ -156,7 +157,7 @@ mixin methodDef(method)
         each key in Object.keys(cl.methods).sort()
             - var method = cl.methods[key]
             - var clazz = (method.inherited || method.overridden) ? 'inherited method subsection' : 'method subsection'
-            div(class=clazz, rel=method.link)
+            div(class=clazz, rel=method.longname)
                 h4.subsection-header
                     mixin methodDef(method)
                     div.meta
@@ -179,19 +180,4 @@ mixin methodDef(method)
                         div.inner
                             span overridden from&nbsp;
                             a(title=method.overridden.longName, href=method.overridden.link)=method.overridden.name
-                div.description!=method.description
-
-- if (cl.jquery && Object.keys(cl.jquery).length)
-    div.jquery.section
-        h3.section-header(rel='#/' + module + '#SjQuery') jQuery Plugins
-        each key in Object.keys(cl.jquery).sort()
-            - var method = cl.jquery[key]
-            div.jquery.subsection(rel=method.link)
-                h4.subsection-header
-                    mixin methodDef(method)
-                    div.meta
-                        a(class='permalink', href=method.link, alt='Permalink to ' + method.longName, title='Permalink to ' + method.longName)
-                            i.icomoon-hash
-                        a(class='srclink', alt='View Source', title='View Source', href=config.repoview + method.meta.path + '/' + method.meta.filename + '#L' + method.meta.lineno)
-                            i.icomoon-code
                 div.description!=method.description

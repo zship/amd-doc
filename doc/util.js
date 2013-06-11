@@ -9,6 +9,14 @@ var _ = require('underscore');
 
 var util = {
 
+	getFile: function(doclet) {
+		if (!doclet.meta) {
+			return;
+		}
+		doclet.meta.file = doclet.meta.file || path.resolve(doclet.meta.path, doclet.meta.filename);
+		return doclet.meta.file;
+	},
+
 	rjsconfig: null,
 
 	getProp: function(/*Array*/parts, /*Boolean*/create, /*Object*/context){

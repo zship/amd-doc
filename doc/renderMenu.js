@@ -12,13 +12,13 @@ var renderMenu = function(obj) {
 
 	//console.log(obj);
 	var html = '<ul>';
-	_.every(Object.keys(obj).sort(), function(key) {
+	Object.keys(obj).sort().every(function(key) {
 		var child = obj[key];
 
 		if (_.isString(_.values(obj)[0])) {
-			var type = Types.getType(child, 'rendering menu') || Types.defaultType(child);
+			//var type = Types.getType(child, 'rendering menu') || Types.defaultType(child);
 			html += '<li>';
-			html += '<a href="' + type.link + '">' + key + '</a>';
+			html += '<a href="#/' + child + '">' + key + '</a>';
 			return true;
 		}
 		else {

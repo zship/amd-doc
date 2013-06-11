@@ -19,7 +19,7 @@ h2
 
 - if (cl.constructor && cl.constructor.kind === 'class')
     div.constructor
-        h3 
+        h3
             a(href='#/' + module + '#SConstructor') Constructor
 
 - if (cl.properties && Object.keys(cl.properties).length)
@@ -31,7 +31,7 @@ h2
                 - var prop = cl.properties[key]
                 - var clazz = (prop.inherited || prop.overridden) ? 'inherited property' : 'property'
                 li(class=clazz)
-                    a.name(href=prop.link, rel=prop.longName)=prop.name
+                    a.name(href='#/' + prop.longname, rel=prop.longname)=prop.name
                     span=' : '
                     span.returns
                         each type, j in prop.types
@@ -49,29 +49,12 @@ h2
                 - var method = cl.methods[key]
                 - var clazz = (method.inherited || method.overridden) ? 'inherited method' : 'method'
                 li(class=clazz)
-                    a.name(href=method.link, rel=method.longName)=method.name
+                    a.name(href='#/' + method.longname, rel=method.longname)=method.name
                     span=' : '
                     span.returns
-                        each type, j in method.returns.types
-                            span.returnType=type.name
-                            - if (j < method.returns.types.length - 1)
-                                span.or='|'
-                        &nbsp;
-
-- if (cl.jquery && Object.keys(cl.jquery).length)
-    div.jquery
-        h3
-            a(href='#/' + module + '#SjQuery') jQuery Plugins
-        ul
-            each key in Object.keys(cl.jquery).sort()
-                - var method = cl.jquery[key]
-                - var clazz = (method.inherited || method.overridden) ? 'inherited jquery' : 'jquery'
-                li(class=clazz)
-                    a.name(href=method.link, rel=method.longName)=method.name
-                    span=' : '
-                    span.returns
-                        each type, j in method.returns.types
-                            span.returnType=type.name
-                            - if (j < method.returns.types.length - 1)
-                                span.or='|'
-                        &nbsp;
+                        each ret in method.returns
+                            each type, j in ret.types
+                                span.returnType=type.name
+                                - if (j < ret.types.length - 1)
+                                    span.or='|'
+                            &nbsp;

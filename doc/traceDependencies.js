@@ -20,7 +20,7 @@ var traceDependencies = function(files, rjsconfig) {
 		//(as opposed to relative to the file in which they're require'd)
 		deps[moduleName] = deps[moduleName].map(function(depName) {
 			var file = Modules.getFile(depName, path.dirname(filePath), rjsconfig);
-			console.log(file);
+			//console.log(file);
 			if (!file) {
 				return {};
 			}

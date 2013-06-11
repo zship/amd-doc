@@ -2,8 +2,13 @@
 
 
 var fs = require('fs');
+var path = require('path');
+
 var Modules = require('amd-tools/util/Modules');
+var forOwn = require('mout/object/forOwn');
 var get = require('mout/object/get');
+
+var util = require('./util');
 
 
 var _copyDoclets = function(source, target) {
@@ -32,7 +37,7 @@ var withModuleInfo = function(doclets, rjsconfig) {
 			return undefined;
 		}
 
-		var file = record.meta.path + '/' + record.meta.filename;
+		var file = util.getFile(record);
 		var moduleLongName = cache[file] = cache[file] || Modules.getId(file, rjsconfig);
 		record.moduleLongName = moduleLongName;
 		record.moduleName = moduleLongName.split('/').pop();
@@ -40,6 +45,25 @@ var withModuleInfo = function(doclets, rjsconfig) {
 		return record;
 	}).filter(function(record) {
 		return record !== undefined;
+	});
+
+	//add jsdoc "kind: module" doclets
+	forOwn(cache, function(moduleId, file) {
+		var record = {
+			meta: {
+				file: file,
+				filename: path.basename(file) + path.extname(file),
+				path: path.dirname(file),
+				lineno: 1
+			},
+			kind: 'module',
+			name: moduleId,
+			//longname: 'module:' + moduleId,
+			longname: moduleId,
+			moduleLongName: moduleId,
+			moduleName: moduleId.split('/').pop()
+		};
+		ret.push(record);
 	});
 
 	//convention: if one class/namespace per module, name the same as this module
@@ -50,22 +74,26 @@ var withModuleInfo = function(doclets, rjsconfig) {
 				other.moduleLongName === record.moduleLongName;
 		});
 		return isClass && isOnlyClassInModule;
-	}).forEach(function(record, i, list) {
+	}).forEach(function(record) {
 		//update members of this class/namespace
-		list.filter(function(other) {
+		ret.filter(function(other) {
 			return other.moduleLongName === record.moduleLongName &&
 				(
 					other.memberof === record.longname ||
-					other.memberof === '<anonymous>~' + record.longname
+					other.memberof === '<anonymous>~' + record.longname ||
+					other.memberof === '<anonymous>~' + record.name
 				);
 
 		}).forEach(function(other) {
-			other.longname = other.longname.replace(other.memberof, record.moduleName);
-			other.memberof = record.moduleName;
+			//other.longname = other.longname.replace(other.memberof, 'module:' + record.moduleLongName);
+			other.longname = other.longname.replace(other.memberof, record.moduleLongName);
+			//other.memberof = 'module:' + record.moduleLongName;
+			other.memberof = record.moduleLongName;
 		});
 
 		//update the class/namespace itself
 		record.name = record.moduleName;
+		//record.longname = 'module:' + record.moduleLongName;
 		record.longname = record.moduleLongName;
 	});
 
@@ -73,21 +101,23 @@ var withModuleInfo = function(doclets, rjsconfig) {
 	//each undocumented property which contains an implementation (and documentation)
 	ret.filter(function(record) {
 		return record.undocumented;
-	}).forEach(function(record, i, list) {
+	}).forEach(function(record) {
 		var implFile = record.meta.path + '/' + record.name + '.js';
-		var hasImplFile = fs.existsSync(implFile);
-
-		if (!hasImplFile) {
+		if (!fs.existsSync(implFile)) {
 			return;
 		}
 
-		var impl = list.filter(function(other) {
+		var impl = ret.filter(function(other) {
 			return (
 				!other.undocumented &&
-				other.file === implFile &&
+				util.getFile(other) === implFile &&
 				other.name === record.name
 			);
 		})[0];
+
+		if (!impl) {
+			return;
+		}
 
 		_copyDoclets(impl, record);
 	});
@@ -106,15 +136,13 @@ var withModuleInfo = function(doclets, rjsconfig) {
 			);
 		});
 		return hasUndocumentedMembers;
-	}).forEach(function(record, i, list) {
+	}).forEach(function(record) {
 		var implPath = record.meta.path + '/' + record.name.toLowerCase();
-		var hasImplDirectory = fs.existsSync(implPath);
-
-		if (!hasImplDirectory) {
+		if (!fs.existsSync(implPath)) {
 			return;
 		}
-		
-		var impl = list.filter(function(other) {
+
+		var impl = ret.filter(function(other) {
 			return (
 				!other.undocumented &&
 				other.meta.path === implPath &&
@@ -123,8 +151,15 @@ var withModuleInfo = function(doclets, rjsconfig) {
 			);
 		})[0];
 
+		if (!impl) {
+			return;
+		}
+
 		_copyDoclets(impl, record);
 	});
+
+	//console.log(JSON.stringify(ret, false, 4));
+
 
 	return ret;
 
