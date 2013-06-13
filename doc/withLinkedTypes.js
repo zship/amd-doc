@@ -1,6 +1,6 @@
 'use strict';
 
-var filter = require('mout/object/filter');
+var forOwn = require('mout/object/forOwn');
 var every = require('mout/object/every');
 var isFunction = require('mout/lang/isFunction');
 
@@ -39,12 +39,15 @@ var _resolveType = function(name, map) {
 	}
 
 	//next try short-names
-	var shortNames = filter(map, function(type) {
-		return (name === type.name);
+	var shortMatches = [];
+	forOwn(map, function(type) {
+		if (name === type.name) {
+			shortMatches.push(type);
+		}
 	});
 
-	if (shortNames.length) {
-		return shortNames[0];
+	if (shortMatches.length === 1) {
+		return shortMatches[0];
 	}
 	/*
 	 *else if (shortNames.length > 1){
@@ -52,14 +55,14 @@ var _resolveType = function(name, map) {
 	 *}
 	 */
 
-	var foundMatch;
 
-	//next try types specified as RegExp objects, matching
+	var found;
+	//next try types specified as functions, matching
 	//against the provided name
 	every(map, function(type) {
 		if (isFunction(type.name)) {
 			if (type.name(name) === true) {
-				foundMatch = {
+				found = {
 					name: name,
 					longName: name,
 					link: type.link
@@ -71,7 +74,7 @@ var _resolveType = function(name, map) {
 		return true;
 	});
 
-	return foundMatch || {
+	return found || {
 		name: name,
 		longName: name,
 		link: false
@@ -102,9 +105,9 @@ var rParams = /(\S*?)<(.*?)>/;
 var _transformDescription = function(description, map, debug) {
 
 	var matches;
-	
+
 	//first, class name + member name
-	
+
 	//global matching will disregard capturing groups, so
 	//capture the full matches and then iterate over all of
 	//them, matching again.

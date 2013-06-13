@@ -10,6 +10,9 @@ var Deferred = require('deferreds/Deferred');
 var pipe = require('deferreds/pipe');
 var loadConfig = require('amd-tools/util/loadConfig');
 var forOwn = require('mout/object/forOwn');
+var map = require('mout/object/map');
+var isPlainObject = require('mout/lang/isPlainObject');
+var isArray = require('mout/lang/isArray');
 
 var util = require('./doc/util.js');
 var Stopwatch = require('./doc/Stopwatch.js');
@@ -95,6 +98,30 @@ amddoc.compile = function(opts) {
 
 
 		function() {
+			var undefinedStringToUndefined = function(obj) {
+				if (isPlainObject(obj)) {
+					return map(obj, function(child) {
+						if (child === 'undefined') {
+							return false;
+						}
+						return undefinedStringToUndefined(child);
+					});
+				}
+				if (isArray(obj)) {
+					return obj.map(function(child) {
+						return undefinedStringToUndefined(child);
+					});
+				}
+				return obj;
+			};
+
+			doclets = doclets.map(function(record) {
+				return undefinedStringToUndefined(record);
+			});
+		},
+
+
+		function() {
 			grunt.log.writeln('');
 			grunt.log.writeln('Tracing AMD dependencies...');
 			return traceDependencies(files, rjsconfig);
@@ -108,7 +135,7 @@ amddoc.compile = function(opts) {
 			grunt.log.writeln('');
 			grunt.log.writeln('Massaging jsdoc output...');
 
-			//console.log(JSON.stringify(graph, false, 4));
+			//console.log(JSON.stringify(doclets, false, 4));
 
 			var result = withModuleInfo(doclets, rjsconfig);
 			//console.log(JSON.stringify(result, false, 4));

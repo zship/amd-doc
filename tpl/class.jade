@@ -47,8 +47,9 @@ mixin methodDef(method)
 
     span.name=method.name
 
+    span.paren.left &#40;
+
     - if (method.params)
-        span.paren.left &#40;
         span.params
             each param, i in method.params
                 - var clazz = (param.optional) ? 'param optional' : 'param'
@@ -68,12 +69,13 @@ mixin methodDef(method)
                         span.varargs=', ...'
                     - if (param.optional)
                         span.opt.right ]
-        span.paren.right &#41;
+
+    span.paren.right &#41;
 
 
-- if (cl.module)
+- if (cl.module && cl.module.description)
     div.module.section
-        h3.section-header(rel='#/' + module + '#SOverview') Overview
+        h3.section-header(rel=module + '#SOverview') Overview
         div.subsection
             div.meta
                 a(class='permalink', href='#/' + module + '#SOverview', alt='Permalink to ' + module + ' overview', title='Permalink to ' + module + ' overview')
@@ -82,7 +84,7 @@ mixin methodDef(method)
 
 - if (cl.meta && cl.meta.deps && cl.meta.deps.length)
     div.dependencies.section
-        h3.section-header(rel='#/' + module + '#SDependencies') Dependencies
+        h3.section-header(rel=module + '#SDependencies') Dependencies
         div.subsection
             div.meta
                 a(class='permalink', href='#/' + module + '#SDependencies', alt='Permalink to ' + module + ' dependencies', title='Permalink to ' + module + ' dependencies ')
@@ -97,7 +99,7 @@ mixin methodDef(method)
 
 - if (cl.constructor && cl.constructor.kind === 'class')
     div.constructors.section
-        h3.section-header(rel='#/' + module + '#SConstructor') Constructor
+        h3.section-header(rel=module + '#SConstructor') Constructor
         div.constructor.subsection
             div.meta
                 a(class='permalink', href='#/' + module + '#SConstructor', alt='Permalink to ' + cl.constructor.longName, title='Permalink to ' + cl.constructor.longName)
@@ -110,7 +112,7 @@ mixin methodDef(method)
 
 - if (cl.properties && Object.keys(cl.properties).length)
     div.properties.section
-        h3.section-header(rel='#/' + module + '#SProperties') Properties
+        h3.section-header(rel=module + '#SProperties') Properties
         each key in Object.keys(cl.properties).sort()
             - var prop = cl.properties[key]
             - var clazz = (prop.inherited || prop.overridden) ? 'inherited property subsection' : 'property subsection'
@@ -118,7 +120,7 @@ mixin methodDef(method)
                 h4.subsection-header
                     mixin methodDef(prop)
                     div.meta
-                        a(class='permalink', href=prop.link, alt='Permalink to ' + prop.longName, title='Permalink to ' + prop.longName)
+                        a(class='permalink', href='#/' + prop.longname, alt='Permalink to ' + prop.longname, title='Permalink to ' + prop.longname)
                             i.icomoon-hash
                         a(class='srclink', alt='View Source', title='View Source', href=config.repoview + prop.meta.path + '/' + prop.meta.filename + '#L' + prop.meta.lineno)
                             i.icomoon-code
@@ -153,7 +155,7 @@ mixin methodDef(method)
 
 - if (cl.methods && Object.keys(cl.methods).length)
     div.methods.section
-        h3.section-header(rel='#/' + module + '#SMethods') Methods
+        h3.section-header(rel=module + '#SMethods') Methods
         each key in Object.keys(cl.methods).sort()
             - var method = cl.methods[key]
             - var clazz = (method.inherited || method.overridden) ? 'inherited method subsection' : 'method subsection'
@@ -161,7 +163,7 @@ mixin methodDef(method)
                 h4.subsection-header
                     mixin methodDef(method)
                     div.meta
-                        a(class='permalink', href=method.link, alt='Permalink to ' + method.longName, title='Permalink to ' + method.longName)
+                        a(class='permalink', href='#/' + method.longname, alt='Permalink to ' + method.longname, title='Permalink to ' + method.longname)
                             i.icomoon-hash
                         a(class='srclink', alt='View Source', title='View Source', href=config.repoview + method.meta.path + '/' + method.meta.filename + '#L' + method.meta.lineno)
                             i.icomoon-code

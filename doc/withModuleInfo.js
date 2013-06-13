@@ -80,6 +80,7 @@ var withModuleInfo = function(doclets, rjsconfig) {
 			return other.moduleLongName === record.moduleLongName &&
 				(
 					other.memberof === record.longname ||
+					other.memberof === record.name ||
 					other.memberof === '<anonymous>~' + record.longname ||
 					other.memberof === '<anonymous>~' + record.name
 				);
@@ -97,65 +98,43 @@ var withModuleInfo = function(doclets, rjsconfig) {
 		record.longname = record.moduleLongName;
 	});
 
-	//convention: see if there's a sibling file of the same name as
-	//each undocumented property which contains an implementation (and documentation)
-	ret.filter(function(record) {
-		return record.undocumented;
-	}).forEach(function(record) {
-		var implFile = record.meta.path + '/' + record.name + '.js';
-		if (!fs.existsSync(implFile)) {
-			return;
-		}
-
-		var impl = ret.filter(function(other) {
-			return (
-				!other.undocumented &&
-				util.getFile(other) === implFile &&
-				other.name === record.name
-			);
-		})[0];
-
-		if (!impl) {
-			return;
-		}
-
-		_copyDoclets(impl, record);
-	});
-
 	//convention: see if there's a sibling directory of the same name as
 	//each namespace which contains implementations (and documentation)
-	ret.filter(function(record, i, list) {
-		if (record.kind !== 'namespace') {
-			return false;
-		}
-		var hasUndocumentedMembers = list.filter(function(other) {
+	ret.filter(function(record) {
+		return record.kind === 'namespace';
+	}).forEach(function(namespace) {
+		ret.filter(function(other) {
 			return (
 				other.undocumented &&
-				other.memberof === record.longname &&
-				other.moduleLongName === record.moduleLongName
+				other.memberof === namespace.longname &&
+				other.moduleLongName === namespace.moduleLongName
 			);
+		}).forEach(function(record) {
+			//try file in same directory with the name of the member
+			var implFile = record.meta.path + '/' + record.name + '.js';
+			if (!fs.existsSync(implFile)) {
+				//try file in directory named after namespace with the name of the member
+				implFile = namespace.meta.path + '/' + namespace.name.toLowerCase() + record.name + '.js';
+			}
+
+			if (!fs.existsSync(implFile)) {
+				return;
+			}
+
+			var impl = ret.filter(function(other) {
+				return (
+					!other.undocumented &&
+					util.getFile(other) === implFile &&
+					other.name === record.name
+				);
+			})[0];
+
+			if (!impl) {
+				return;
+			}
+
+			_copyDoclets(impl, record);
 		});
-		return hasUndocumentedMembers;
-	}).forEach(function(record) {
-		var implPath = record.meta.path + '/' + record.name.toLowerCase();
-		if (!fs.existsSync(implPath)) {
-			return;
-		}
-
-		var impl = ret.filter(function(other) {
-			return (
-				!other.undocumented &&
-				other.meta.path === implPath &&
-				other.meta.filename === record.name + '.js' &&
-				other.name === record.name
-			);
-		})[0];
-
-		if (!impl) {
-			return;
-		}
-
-		_copyDoclets(impl, record);
 	});
 
 	//console.log(JSON.stringify(ret, false, 4));
