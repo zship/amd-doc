@@ -7,25 +7,25 @@ h2
                 - if (i < cl.extends.length - 1)
                     span.sep=','
 
-- if (cl.module)
-    div.module
+- if (cl.module && cl.module.description)
+    div.overview
         h3
-            a(href='#/' + module + '#SOverview') Overview
+            a(href='#/' + module + '#SOverview', rel=module + '#SOverview') Overview
 
-- if (cl.meta && cl.meta.deps)
+- if (cl.module && cl.module.meta && cl.module.meta.dependencies && cl.module.meta.dependencies.length)
     div.dependencies
         h3
-            a(href='#/' + module + '#SDependencies') Dependencies
+            a(href='#/' + module + '#SDependencies', rel=module + '#SDependencies') Dependencies
 
 - if (cl.constructor && cl.constructor.kind === 'class')
     div.constructor
         h3
-            a(href='#/' + module + '#SConstructor') Constructor
+            a(href='#/' + module + '#SConstructor', rel=module + '#SConstructor') Constructor
 
 - if (cl.properties && Object.keys(cl.properties).length)
     div.properties
         h3
-            a(href='#/' + module + '#SProperties') Properties
+            a(href='#/' + module + '#SProperties', rel=module + '#SProperties') Properties
         ul
             each key in Object.keys(cl.properties).sort()
                 - var prop = cl.properties[key]
@@ -43,7 +43,7 @@ h2
 - if (cl.methods && Object.keys(cl.methods).length)
     div.methods
         h3
-            a(href='#/' + module + '#SMethods') Methods
+            a(href='#/' + module + '#SMethods', rel=module + '#SMethods') Methods
         ul
             each key in Object.keys(cl.methods).sort()
                 - var method = cl.methods[key]

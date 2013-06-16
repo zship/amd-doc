@@ -30,6 +30,7 @@ var renderMenu = require('./doc/renderMenu.js');
 var printSummary = require('./doc/printSummary.js');
 var traceDependencies = require('./doc/traceDependencies.js');
 var withModuleInfo = require('./doc/withModuleInfo');
+var withLinkedDependencies = require('./doc/withLinkedDependencies');
 var withMarkdownDescriptions = require('./doc/withMarkdownDescriptions');
 var withRenderedMarkdown = require('./doc/withRenderedMarkdown');
 var withLinkedTypes = require('./doc/withLinkedTypes');
@@ -148,6 +149,9 @@ amddoc.compile = function(opts) {
 			grunt.log.ok(stopwatch.elapsed() + 'ms');
 			stopwatch.reset();
 
+			result = withLinkedDependencies(result, opts.depLink, rjsconfig);
+			//console.log(JSON.stringify(result, false, 4));
+
 
 
 			grunt.log.writeln('');
@@ -183,7 +187,7 @@ amddoc.compile = function(opts) {
 
 			result = groupModules(result);
 
-			console.log(JSON.stringify(result, false, 4));
+			//console.log(JSON.stringify(result, false, 4));
 
 			/*
 			 *grunt.log.writeln('');

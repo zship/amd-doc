@@ -51,8 +51,7 @@ var withModuleInfo = function(doclets, rjsconfig) {
 	forOwn(cache, function(moduleId, file) {
 		var record = {
 			meta: {
-				file: file,
-				filename: path.basename(file) + path.extname(file),
+				filename: path.basename(file),
 				path: path.dirname(file),
 				lineno: 1
 			},
@@ -72,7 +71,7 @@ var withModuleInfo = function(doclets, rjsconfig) {
 		var isOnlyClassInModule = list.filter(function(other) {
 			return (other.kind === 'class' || other.kind === 'namespace') &&
 				other.moduleLongName === record.moduleLongName;
-		});
+		}).length;
 		return isClass && isOnlyClassInModule;
 	}).forEach(function(record) {
 		//update members of this class/namespace
@@ -135,6 +134,19 @@ var withModuleInfo = function(doclets, rjsconfig) {
 
 			_copyDoclets(impl, record);
 		});
+	});
+
+	//convention: only one documented function in the module? it's a member.
+	ret.filter(function(record, i, list) {
+		var isOnlyDocumentedFnInModule = list.filter(function(other) {
+			return other.kind === 'function' &&
+				!other.undocumented &&
+				other.moduleLongName === record.moduleLongName;
+		}).length;
+		return record.kind === 'function' && isOnlyDocumentedFnInModule;
+	}).forEach(function(record) {
+		record.longname = record.longname.replace(record.memberof, record.moduleLongName);
+		record.memberof = record.moduleLongName;
 	});
 
 	//console.log(JSON.stringify(ret, false, 4));
