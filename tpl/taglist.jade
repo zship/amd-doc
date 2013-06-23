@@ -58,3 +58,14 @@ h2
                                 - if (j < ret.types.length - 1)
                                     span.or='|'
                             &nbsp;
+
+- if (cl.events && Object.keys(cl.events).length)
+    div.events
+        h3
+            a(href='#/' + module + '#Sevents', rel=module + '#Sevents') Events
+        ul
+            each key in Object.keys(cl.events).sort()
+                - var ev = cl.events[key]
+                - var clazz = (ev.inherited || ev.overridden) ? 'inherited event' : 'event'
+                li(class=clazz)
+                    a.name(href='#/' + ev.longname, rel=ev.longname)=ev.name

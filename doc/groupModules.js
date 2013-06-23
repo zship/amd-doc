@@ -19,7 +19,8 @@ var groupModules = function(doclets) {
 			module: {},
 			constructor: {},
 			properties: {},
-			methods: {}
+			methods: {},
+			events: {}
 		};
 
 		if (record.kind === 'module') {
@@ -32,12 +33,21 @@ var groupModules = function(doclets) {
 		}
 
 		if (record.kind === 'member' || record.isEnum) {
+			if (record.memberof !== record.moduleLongName) {
+				//remove members of enums
+				return;
+			}
 			ret[record.moduleLongName].properties[record.name] = record;
 			return;
 		}
 
 		if (record.kind === 'function') {
 			ret[record.moduleLongName].methods[record.name] = record;
+			return;
+		}
+
+		if (record.kind === 'event') {
+			ret[record.moduleLongName].events[record.name] = record;
 			return;
 		}
 	});

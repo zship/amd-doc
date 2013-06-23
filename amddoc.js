@@ -149,7 +149,7 @@ amddoc.compile = function(opts) {
 			grunt.log.ok(stopwatch.elapsed() + 'ms');
 			stopwatch.reset();
 
-			result = withLinkedDependencies(result, opts.depLink, rjsconfig);
+			result = withLinkedDependencies(result, opts.types, rjsconfig);
 			//console.log(JSON.stringify(result, false, 4));
 
 
@@ -180,8 +180,45 @@ amddoc.compile = function(opts) {
 			 */
 
 
-			result = withLinkedTypes(result, opts.types);
+			var transformer = function(type, own) {
+				if (opts.types) {
+					type.link = opts.types(type.longName, own);
+				}
+				type.displayName = (function() {
+					//console.log(type.longName);
+					if (!own) {
+						return type.longName;
+					}
+					//class/module name
+					if (type.longName.trim().search(/[#~\.]/) === -1) {
+						return type.name;
+					}
+					//member namepath
+					var parts = type.longName.trim().match(/^(\S*?)([#~\.])(\S*?)$/);
+					if (!parts) {
+						return type.longName;
+					}
+					if (parts[3].search(/event:/) !== -1) {
+						return parts[1].split('/').pop() + ':"' + parts[3].replace('event:', '') + '"';
+					}
+					return parts[1].split('/').pop() + parts[2] + parts[3];
+				})();
+
+				return type;
+			};
+			result = withLinkedTypes(result, transformer);
 			//console.log(JSON.stringify(result, false, 4));
+			//
+			result = result.map(function(record) {
+				if (!record.meta) {
+					return;
+				}
+				record.meta.srcview = opts.srcview(util.getFile(record), record.meta.lineno);
+				if (record.imported) {
+					record.imported.srcview = opts.srcview(record.imported.path + record.imported.filename, record.imported.lineno);
+				}
+				return record;
+			});
 
 			result = withRenderedMarkdown(result);
 
@@ -296,9 +333,15 @@ amddoc.compile = function(opts) {
 	]).then(function() {
 		grunt.log.writeln('');
 		grunt.log.writeln('Total Time: ' + totalStopwatch.elapsed() + 'ms');
-	}).fail(function(err) {
-		console.log('failed');
-		console.error(err.stack);
+	}, function(err) {
+		if (err.stack) {
+			process.stderr.write(err.stack);
+		}
+		else {
+			process.stderr.write(err.toString());
+		}
+		process.stderr.write('\n\n');
+		process.exit(1);
 	});
 
 };

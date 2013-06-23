@@ -27,14 +27,14 @@ mixin typeDef(types)
 
 mixin methodDef(method)
     - if (method.scope === 'static')
-        span.scope static&nbsp;
+        span.qualifier static&nbsp;
     - if (method.isEnum)
-        span.enum enum&nbsp;
+        span.qualifier enum&nbsp;
 
     - if (method.chainable)
-        span.chainable this&nbsp;
+        span.qualifier this&nbsp;
     - else if (method.chainable === false)
-        span.chainable new&nbsp;
+        span.qualifier new&nbsp;
 
     - if (method.returns)
         span.returns
@@ -73,6 +73,16 @@ mixin methodDef(method)
     span.paren.right &#41;
 
 
+mixin eventDef(event)
+    span.qualifier event&nbsp;
+    span.name.string='"' + event.name + '"'
+    span.colon=':'
+    - if (event.types)
+        span.returns
+            mixin typeDef(event.types)
+            &nbsp;
+
+
 - if (cl.module && cl.module.description)
     div.overview.section
         h3.section-header(rel=module + '#SOverview') Overview
@@ -82,20 +92,33 @@ mixin methodDef(method)
                     i.icomoon-hash
             div.description!=cl.module.description
 
-- if (cl.module && cl.module.meta && cl.module.meta.dependencies && cl.module.meta.dependencies.length)
+- if (cl.module && cl.module.meta && ((cl.module.meta.dependencies && cl.module.meta.dependencies.length) || (cl.module.meta.whatrequires && cl.module.meta.whatrequires.length)))
     div.dependencies.section
         h3.section-header(rel=module + '#SDependencies') Dependencies
         div.subsection
             div.meta
                 a(class='permalink', href='#/' + module + '#SDependencies', alt='Permalink to ' + module + ' dependencies', title='Permalink to ' + module + ' dependencies ')
                     i.icomoon-hash
-            ul
-                each dep in cl.module.meta.dependencies
-                    - if (dep.link)
-                        li
-                            a(href=dep.link)=dep.id
-                    - else
-                        li=dep.id
+            - if (cl.module.meta.dependencies && cl.module.meta.dependencies.length)
+                div.requires
+                    h3 Requires
+                    ul
+                        each dep in cl.module.meta.dependencies
+                            - if (dep.link)
+                                li
+                                    a(href=dep.link)=dep.id
+                            - else
+                                li=dep.id
+            - if (cl.module.meta.whatrequires && cl.module.meta.whatrequires.length)
+                div.requiredby
+                    h3 Required by
+                    ul
+                        each dep in cl.module.meta.whatrequires
+                            - if (dep.link)
+                                li
+                                    a(href=dep.link)=dep.id
+                            - else
+                                li=dep.id
 
 - if (cl.constructor && cl.constructor.kind === 'class')
     div.constructors.section
@@ -106,9 +129,10 @@ mixin methodDef(method)
             div.meta
                 a(class='permalink', href='#/' + module + '#SConstructor', alt='Permalink to ' + cl.constructor.longName, title='Permalink to ' + cl.constructor.longName)
                     i.icomoon-hash
-                a(class='srclink', alt='View Source', title='View Source', href=config.repoview + cl.constructor.meta.path + '/' + cl.constructor.meta.filename + '#L' + cl.constructor.meta.lineno)
+                a(class='srclink', alt='View Source', title='View Source', href=cl.constructor.meta.srcview)
                     i.icomoon-code
-            div.description!=cl.constructor.description
+            - if (cl.constructor.description)
+                div.description!=cl.constructor.description
 
 - if (cl.properties && Object.keys(cl.properties).length)
     div.properties.section
@@ -122,7 +146,7 @@ mixin methodDef(method)
                 div.meta
                     a(class='permalink', href='#/' + prop.longname, alt='Permalink to ' + prop.longname, title='Permalink to ' + prop.longname)
                         i.icomoon-hash
-                    a(class='srclink', alt='View Source', title='View Source', href=config.repoview + prop.meta.path + '/' + prop.meta.filename + '#L' + prop.meta.lineno)
+                    a(class='srclink', alt='View Source', title='View Source', href=prop.meta.srcview)
                         i.icomoon-code
                 - if (prop.isEnum)
                     - var isString = (prop.types && prop.types[0].name === 'String')
@@ -151,7 +175,8 @@ mixin methodDef(method)
                         div.inner
                             span overridden from&nbsp;
                             a(title=prop.overridden.longName, href=prop.overridden.link)=prop.overridden.name
-                div.description!=prop.description
+                - if (prop.description)
+                    div.description!=prop.description
 
 - if (cl.methods && Object.keys(cl.methods).length)
     div.methods.section
@@ -165,7 +190,7 @@ mixin methodDef(method)
                 div.meta
                     a(class='permalink', href='#/' + method.longname, alt='Permalink to ' + method.longname, title='Permalink to ' + method.longname)
                         i.icomoon-hash
-                    a(class='srclink', alt='View Source', title='View Source', href=config.repoview + method.meta.path + '/' + method.meta.filename + '#L' + method.meta.lineno)
+                    a(class='srclink', alt='View Source', title='View Source', href=method.meta.srcview)
                         i.icomoon-code
                 - if (method.inherited)
                     div.inherit-info
@@ -176,10 +201,38 @@ mixin methodDef(method)
                     div.import-info
                         div.inner
                             span imported from&nbsp;
-                            a(title=method.imported.module, href=config.repoview + method.imported.path + '/' + method.imported.filename + '#L' + method.imported.lineno)=method.imported.module
+                            a(title=method.imported.module, href=method.imported.srcview)=method.imported.module
                 - if (method.overridden)
                     div.override-info
                         div.inner
                             span overridden from&nbsp;
                             a(title=method.overridden.longName, href=method.overridden.link)=method.overridden.name
-                div.description!=method.description
+                - if (method.description)
+                    div.description!=method.description
+
+- if (cl.events && Object.keys(cl.events).length)
+    div.events.section
+        h3.section-header(rel=module + '#SEvents') Events
+        each key in Object.keys(cl.events).sort()
+            - var ev = cl.events[key]
+            - var clazz = (ev.inherited || ev.overridden) ? 'inherited event subsection' : 'event subsection'
+            div(class=clazz, rel=ev.longname)
+                h2.subsection-header
+                    mixin eventDef(ev)
+                div.meta
+                    a(class='permalink', href='#/' + ev.longname, alt='Permalink to ' + ev.longname, title='Permalink to ' + ev.longname)
+                        i.icomoon-hash
+                    a(class='srclink', alt='View Source', title='View Source', href=ev.meta.srcview)
+                        i.icomoon-code
+                - if (ev.inherited)
+                    div.inherit-info
+                        div.inner
+                            span inherited from&nbsp;
+                            a(title=ev.inherited.longName, href=ev.inherited.link)=ev.inherited.name
+                - if (ev.overridden)
+                    div.override-info
+                        div.inner
+                            span overridden from&nbsp;
+                            a(title=ev.overridden.longName, href=ev.overridden.link)=ev.overridden.name
+                - if (ev.description)
+                    div.description!=ev.description

@@ -62,6 +62,12 @@ var withModuleInfo = function(doclets, rjsconfig) {
 			moduleLongName: moduleId,
 			moduleName: moduleId.split('/').pop()
 		};
+		var hasDocumentedMembers = ret.filter(function(record) {
+			return record.moduleLongName === moduleId && !record.undocumented;
+		}).length;
+		if (!hasDocumentedMembers) {
+			record.undocumented = true;
+		}
 		ret.push(record);
 	});
 

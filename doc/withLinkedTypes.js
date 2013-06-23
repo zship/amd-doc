@@ -1,21 +1,33 @@
 'use strict';
 
-var forOwn = require('mout/object/forOwn');
+
 var every = require('mout/object/every');
-var isFunction = require('mout/lang/isFunction');
+var filter = require('mout/object/filter');
 
 
-var _resolveType = function(name, map) {
-	//first try the fast dictionary approach for perfect String matches
-	if (map[name]) {
-		return map[name];
+//find the best match for a name out of known types
+var cache = {};
+var _materializeType = function(name, longNameMap, transformer) {
+	if (cache[name]) {
+		return cache[name];
+	}
+
+	//first try long names
+	if (longNameMap[name]) {
+		cache[name] = transformer({
+			name: longNameMap[name],
+			longName: name,
+			displayName: name,
+			link: '#'
+		}, true);
+		return cache[name];
 	}
 
 	//next try generics (e.g. Array<String>)
 	var matches;
 	if ((matches = name.match(/(.*?)<(.*)>/))) {
 		var container = matches[1];
-		var containerType = _resolveType(container, map);
+		var containerType = _materializeType(container, longNameMap, transformer);
 
 		if (!containerType) {
 			return;
@@ -25,61 +37,49 @@ var _resolveType = function(name, map) {
 
 		var args = [];
 		argString.split(',').forEach(function(arg) {
-			var type = _resolveType(arg.trim(), map);
+			var type = _materializeType(arg.trim(), longNameMap, transformer);
 			args.push(type || {});
 		});
 
-		return {
+		cache[name] = transformer({
 			generic: true,
 			name: containerType.name,
 			longName: containerType.longName,
+			displayName: containerType.longName,
 			link: containerType.link,
 			args: args
-		};
+		});
+		return cache[name];
 	}
 
-	//next try short-names
-	var shortMatches = [];
-	forOwn(map, function(type) {
-		if (name === type.name) {
-			shortMatches.push(type);
-		}
-	});
-
-	if (shortMatches.length === 1) {
-		return shortMatches[0];
-	}
-	/*
-	 *else if (shortNames.length > 1){
-	 *    grunt.log.subhead('WARNING: Ambiguous usage of short-name ' + name + '. Documentation will not present a link.');
-	 *}
-	 */
-
-
+	//next try defined short names
 	var found;
-	//next try types specified as functions, matching
-	//against the provided name
-	every(map, function(type) {
-		if (isFunction(type.name)) {
-			if (type.name(name) === true) {
-				found = {
-					name: name,
-					longName: name,
-					link: type.link
-				};
-				return false;
-			}
+	every(longNameMap, function(shortname, key) {
+		if (shortname === name) {
+			found = key;
+			return false;
 		}
-
 		return true;
 	});
 
-	return found || {
+	if (found) {
+		var shortName = longNameMap[found];
+		cache[shortName] = transformer({
+			name: shortName,
+			longName: found,
+			displayName: found,
+			link: '#'
+		}, true);
+		return cache[shortName];
+	}
+
+	cache[name] = transformer({
 		name: name,
 		longName: name,
-		link: false
-	};
-
+		displayName: name,
+		link: '#'
+	});
+	return cache[name];
 };
 
 
@@ -93,16 +93,16 @@ var sNamePath = '{(\\S*?)([#~\\.])(\\S*?)}';
 var rNamePath = new RegExp(sNamePath);
 var rNamePathGlobal = new RegExp(sNamePath, 'g');
 
-var sClassName = '{([^{].*?)}';
+var sClassName = '{([^{]\\S*?)}';
 var rClassName = new RegExp(sClassName);
 var rClassNameGlobal = new RegExp(sClassName, 'g');
 
-var rParams = /(\S*?)<(.*?)>/;
+var rParams = /(\S*?)<(\S*?)>/;
 
 
 //finds the use of jsdoc longNames in descriptions and replaces them with links
 //example: joss.mvc.Controller#bind -> [Controller.bind](link to joss.mvc.Controller#bind)
-var _transformDescription = function(description, map, debug) {
+var _transformDescription = function(description, map, transformer, debug) {
 
 	var matches;
 
@@ -120,18 +120,18 @@ var _transformDescription = function(description, map, debug) {
 		var scope = submatches[2];
 		var propName = submatches[3];
 
+
+		var clazz = _materializeType(typeName, map, transformer, 'inside ' + debug + ' description');
+		var longName = clazz.longName + scope + propName;
+		var type = _materializeType(longName, map, transformer);
+
 		var rName = new RegExp(name, 'g');
 
-		var type = _resolveType(typeName, map, 'inside ' + debug + ' description');
-
-		var longName = type.longName + scope + propName;
-		var shortName = type.name + '.' + propName;
-
 		if (type.link) {
-			description = description.replace(rName, '<a href="#/' + longName + '" title="' + longName + '">' + shortName + '</a>');
+			description = description.replace(rName, '<a href="' + type.link + '" title="' + type.longName + '">' + type.displayName + '</a>');
 		}
 		else {
-			description = description.replace(rName, shortName);
+			description = description.replace(rName, type.displayName);
 		}
 	});
 
@@ -151,9 +151,9 @@ var _transformDescription = function(description, map, debug) {
 			var baseTypeName = subMatches[1];
 			var args = subMatches[2].split(',');
 
-			var baseType = _resolveType(baseTypeName, map, 'parameterized type inside ' + debug + ' description');
+			var baseType = _materializeType(baseTypeName, map, transformer, 'parameterized type inside ' + debug + ' description');
 
-			var html = '<a href="' + baseType.link + '">' + baseType.name + '</a>';
+			var html = '<a href="' + baseType.link + '">' + baseType.displayName + '</a>';
 			html += '&lt;';
 
 			args.forEach(function(arg, i) {
@@ -161,8 +161,8 @@ var _transformDescription = function(description, map, debug) {
 				if (i !== 0) {
 					html += ', ';
 				}
-				var argType = _resolveType(arg, 'parameterized type #' + i + ' inside ' + debug + ' description');
-				html += '<a href="' + argType.link + '">' + argType.name + '</a>';
+				var argType = _materializeType(arg, map, transformer, 'parameterized type #' + i + ' inside ' + debug + ' description');
+				html += '<a href="' + argType.link + '">' + argType.displayName + '</a>';
 			});
 
 			html += '&gt;';
@@ -172,18 +172,13 @@ var _transformDescription = function(description, map, debug) {
 		}
 
 
-		var type = _resolveType(typeName, map, 'inside ' + debug + ' description');
-		var title = type.longName;
-		if (type.longName === type.name) {
-			title = '';
-		}
-
+		var type = _materializeType(typeName, map, transformer, 'inside ' + debug + ' description');
 
 		if (type.link) {
-			description = description.replace(rName, '<a href="' + type.link + '" title="' + title + '">' + type.name + '</a>');
+			description = description.replace(rName, '<a href="' + type.link + '" title="' + type.longName + '">' + type.displayName + '</a>');
 		}
 		else {
-			description = description.replace(rName, typeName);
+			description = description.replace(rName, type.displayName);
 		}
 	});
 
@@ -192,48 +187,48 @@ var _transformDescription = function(description, map, debug) {
 };
 
 
-var withLinkedTypes = function(doclets, extraTypes) {
+var withLinkedTypes = function(doclets, transformer) {
+	transformer = transformer || function() {};
 
-	var typeMap = {};
+	var longNameMap = {};
 
 	doclets.forEach(function(record) {
 		if (record.imported) {
 			return;
 		}
 
-		if (record.kind === 'class' || record.kind === 'namespace') {
-			typeMap[record.longname] = {
-				longName: record.longname,
-				name: record.name,
-				link: '#/' + record.longname
-			};
+		if (record.undocumented) {
+			return;
 		}
 
-		if (record.isEnum) {
-			typeMap[record.longname] = {
-				longName: record.longname,
-				name: record.moduleName + '.' + record.name,
-				link: '#/' + record.longname
-			};
+		if (record.kind === 'module') {
+			longNameMap[record.moduleLongName] = record.moduleName;
+		}
+		else if (record.isEnum) {
+			longNameMap[record.longname] = record.moduleName + '.' + record.name;
+		}
+		else {
+			longNameMap[record.longname] = record.name;
 		}
 	});
 
+	/*
+	 *longNameMap = filter(longNameMap, function(name, longName) {
+	 *    if (longName.search(/<anonymous>~/) === -1) {
+	 *        return true;
+	 *    }
+	 *    var parts = longName.match(/<anonymous>~(\S*?)/);
+	 *    Object.keys(longNameMap).filter
+	 *});
+	 */
+
 	//console.log(JSON.stringify(typeMap, false, 4));
 
-	extraTypes.forEach(function(type) {
-		if (!type.longName) {
-			type.longName = type.name;
-		}
-		typeMap[type.longName || type.name] = type;
-	});
-
-	//console.log(JSON.stringify(typeMap, false, 4));
-
-	return doclets.map(function(record) {
+	var result = doclets.map(function(record) {
 		var params = record.params || [];
 		params.forEach(function(param) {
 			param.types = param.type.names.map(function(name) {
-				return _resolveType(name, typeMap);
+				return _materializeType(name, longNameMap, transformer);
 			});
 		});
 
@@ -241,43 +236,55 @@ var withLinkedTypes = function(doclets, extraTypes) {
 		returns.forEach(function(param) {
 			//special: '@return this' sets the return type to the class' type
 			if (param.description === 'this') {
-				param.types = [_resolveType(record.memberof, typeMap)];
+				param.types = [_materializeType(record.memberof, longNameMap, transformer)];
 				record.chainable = true;
 				return;
 			}
 
 			//special: flag methods returning a new instance of their class
-			if (_resolveType(param.type.names[0], typeMap) === _resolveType(record.memberof, typeMap)) {
+			if (_materializeType(param.type.names[0], longNameMap, transformer) === _materializeType(record.memberof, longNameMap, transformer)) {
 				record.chainable = false;
 			}
 
 			param.types = param.type.names.map(function(name) {
-				return _resolveType(name, typeMap);
+				return _materializeType(name, longNameMap, transformer);
 			});
 		});
 
 		if (record.kind === 'function' && !returns.length) {
-			record.returns = record.returns || {};
-			record.returns.types = [_resolveType('void', typeMap)];
+			record.returns = [{
+				types: [
+					_materializeType('void', longNameMap, transformer)
+				]
+			}];
 		}
 
 		if (record.augments) {
 			record.augments = record.augments.map(function(name) {
-				return _resolveType(name, typeMap);
+				return _materializeType(name, longNameMap, transformer);
 			});
 		}
 
 		if (record.type) {
 			record.types = record.type.names.map(function(name) {
-				return _resolveType(name, typeMap);
+				return _materializeType(name, longNameMap, transformer);
 			});
 		}
 
+		if (record.kind === 'event' && !record.type) {
+			record.types = [
+				_materializeType('void', longNameMap, transformer)
+			];
+		}
+
 		if (record.description) {
-			record.description = _transformDescription(record.description, typeMap);
+			record.description = _transformDescription(record.description, longNameMap, transformer);
 		}
 		return record;
 	});
+
+	//console.log(JSON.stringify(cache, false, 4));
+	return result;
 
 };
 
