@@ -32,6 +32,7 @@ var traceDependencies = require('./doc/traceDependencies.js');
 var withModuleInfo = require('./doc/withModuleInfo');
 var withLinkedDependencies = require('./doc/withLinkedDependencies');
 var withMarkdownDescriptions = require('./doc/withMarkdownDescriptions');
+var withMultipleInheritance = require('./doc/withMultipleInheritance');
 var withRenderedMarkdown = require('./doc/withRenderedMarkdown');
 var withLinkedTypes = require('./doc/withLinkedTypes');
 var groupModules = require('./doc/groupModules');
@@ -179,29 +180,38 @@ amddoc.compile = function(opts) {
 			 *}
 			 */
 
+			result = withMultipleInheritance(result);
+			//console.log(JSON.stringify(result, false, 4));
 
-			var transformer = function(type, own) {
+
+			var transformer = function(type) {
 				if (opts.types) {
-					type.link = opts.types(type.longName, own);
+					type.link = opts.types(type.longName, type.own);
 				}
 				type.displayName = (function() {
-					//console.log(type.longName);
-					if (!own) {
-						return type.longName;
+					var name = type.longName.replace(/module:/, '').trim();
+
+					if (!type.own) {
+						return name;
+					}
+
+					//member namepath
+					var parts = name.match(/^(\S*?)([#~\.])(\S*?)$/);
+					if (parts) {
+						if (parts[1].search(/\//) !== -1) {
+							parts[1] = parts[1].split('/').pop();
+						}
+						if (parts[3].search(/event:/) !== -1) {
+							return parts[1] + ':"' + parts[3].replace('event:', '') + '"';
+						}
+						return parts[1] + parts[2] + parts[3];
 					}
 					//class/module name
-					if (type.longName.trim().search(/[#~\.]/) === -1) {
-						return type.name;
+					else if (name.search(/\//) !== -1){
+						return name.split('/').pop();
 					}
-					//member namepath
-					var parts = type.longName.trim().match(/^(\S*?)([#~\.])(\S*?)$/);
-					if (!parts) {
-						return type.longName;
-					}
-					if (parts[3].search(/event:/) !== -1) {
-						return parts[1].split('/').pop() + ':"' + parts[3].replace('event:', '') + '"';
-					}
-					return parts[1].split('/').pop() + parts[2] + parts[3];
+
+					return name;
 				})();
 
 				return type;

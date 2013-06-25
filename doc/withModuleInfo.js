@@ -57,8 +57,8 @@ var withModuleInfo = function(doclets, rjsconfig) {
 			},
 			kind: 'module',
 			name: moduleId,
-			//longname: 'module:' + moduleId,
-			longname: moduleId,
+			longname: 'module:' + moduleId,
+			//longname: moduleId,
 			moduleLongName: moduleId,
 			moduleName: moduleId.split('/').pop()
 		};
@@ -91,16 +91,16 @@ var withModuleInfo = function(doclets, rjsconfig) {
 				);
 
 		}).forEach(function(other) {
-			//other.longname = other.longname.replace(other.memberof, 'module:' + record.moduleLongName);
-			other.longname = other.longname.replace(other.memberof, record.moduleLongName);
-			//other.memberof = 'module:' + record.moduleLongName;
-			other.memberof = record.moduleLongName;
+			other.longname = other.longname.replace(other.memberof, 'module:' + record.moduleLongName);
+			//other.longname = other.longname.replace(other.memberof, record.moduleLongName);
+			other.memberof = 'module:' + record.moduleLongName;
+			//other.memberof = record.moduleLongName;
 		});
 
 		//update the class/namespace itself
 		record.name = record.moduleName;
-		//record.longname = 'module:' + record.moduleLongName;
-		record.longname = record.moduleLongName;
+		record.longname = 'module:' + record.moduleLongName;
+		//record.longname = record.moduleLongName;
 	});
 
 	//convention: see if there's a sibling directory of the same name as
@@ -151,9 +151,19 @@ var withModuleInfo = function(doclets, rjsconfig) {
 		}).length;
 		return record.kind === 'function' && isOnlyDocumentedFnInModule;
 	}).forEach(function(record) {
-		record.longname = record.longname.replace(record.memberof, record.moduleLongName);
-		record.memberof = record.moduleLongName;
+		record.longname = record.longname.replace(record.memberof, 'module:' + record.moduleLongName);
+		record.memberof = 'module:' + record.moduleLongName;
+		//record.longname = record.longname.replace(record.memberof, record.moduleLongName);
+		//record.memberof = record.moduleLongName;
 	});
+
+	//delete the non-standard stuff we added
+	/*
+	 *ret.forEach(function(record) {
+	 *    delete record.moduleName;
+	 *    delete record.moduleLongName;
+	 *});
+	 */
 
 	//console.log(JSON.stringify(ret, false, 4));
 

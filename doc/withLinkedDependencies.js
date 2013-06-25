@@ -20,7 +20,7 @@ var withLinkedDependencies = function(doclets, linker, rjsconfig) {
 	doclets.filter(function(record) {
 		return record.kind === 'module';
 	}).forEach(function(record) {
-		ownModules[record.moduleLongName] = true;
+		ownModules[record.name] = true;
 	});
 
 	doclets.filter(function(record) {
@@ -53,15 +53,15 @@ var withLinkedDependencies = function(doclets, linker, rjsconfig) {
 	}).map(function(record) {
 		record.meta.whatrequires = compact(flatten(
 			doclets.filter(function(other) {
-				return other.kind === 'module' && other.moduleLongName !== record.moduleLongName;
+				return other.kind === 'module' && other.name !== record.name;
 			}).map(function(other) {
 				var requiresModule = other.meta.dependencies.filter(function(dep) {
-					return dep.id === record.moduleLongName;
+					return dep.id === record.name;
 				}).length;
 				if (requiresModule) {
 					return {
-						id: other.moduleLongName,
-						link: linker(other.moduleLongName, true)
+						id: other.name,
+						link: linker(other.name, true)
 					};
 				}
 			})

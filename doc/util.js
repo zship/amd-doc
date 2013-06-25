@@ -17,6 +17,17 @@ var util = {
 		return doclet.meta.file;
 	},
 
+	getModule: function(doclet) {
+		if (doclet.longname.search(/module:/) === -1) {
+			return;
+		}
+		//console.log(doclet.longname);
+		if (doclet.longname.search(/[#~\.]/) === -1) {
+			return doclet.longname.replace(/module:/, '');
+		}
+		return doclet.longname.match(/module:(\S*?)[#~\.]/)[1];
+	},
+
 	rjsconfig: null,
 
 	getProp: function(/*Array*/parts, /*Boolean*/create, /*Object*/context){

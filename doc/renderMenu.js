@@ -2,7 +2,6 @@
 
 
 var _ = require('underscore');
-var Types = require('./Types.js');
 
 
 var renderMenu = function(obj) {
@@ -16,9 +15,8 @@ var renderMenu = function(obj) {
 		var child = obj[key];
 
 		if (_.isString(_.values(obj)[0])) {
-			//var type = Types.getType(child, 'rendering menu') || Types.defaultType(child);
 			html += '<li>';
-			html += '<a href="#/' + child + '">' + key + '</a>';
+			html += '<a href="#/module:' + child + '">' + key + '</a>';
 			return true;
 		}
 		else {

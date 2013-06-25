@@ -1,31 +1,31 @@
 h2
     span.moduleName=module
-    -if (cl.extends)
+    -if (cl.constructor && cl.constructor.augments)
         span.extends=' extends '
-            each base, i in cl.extends
-                a.superclass(href=base.link, title=base.longName)=base.name
-                - if (i < cl.extends.length - 1)
+            each base, i in cl.constructor.augments
+                a.superclass(href=base.link, title=base.longName)=base.displayName
+                - if (i < cl.constructor.augments.length - 1)
                     span.sep=','
 
 - if (cl.module && cl.module.description)
     div.overview
         h3
-            a(href='#/' + module + '#SOverview', rel=module + '#SOverview') Overview
+            a(href=cl.module.types[0].link + '#SOverview', rel=cl.module.types[0].longName + '#SOverview') Overview
 
 - if (cl.module && cl.module.meta && cl.module.meta.dependencies && cl.module.meta.dependencies.length)
     div.dependencies
         h3
-            a(href='#/' + module + '#SDependencies', rel=module + '#SDependencies') Dependencies
+            a(href=cl.module.types[0].link + '#SDependencies', rel=cl.module.types[0].longName + '#SDependencies') Dependencies
 
 - if (cl.constructor && cl.constructor.kind === 'class')
     div.constructor
         h3
-            a(href='#/' + module + '#SConstructor', rel=module + '#SConstructor') Constructor
+            a(href=cl.module.types[0].link + '#SConstructor', rel=cl.module.types[0].longName + '#SConstructor') Constructor
 
 - if (cl.properties && Object.keys(cl.properties).length)
     div.properties
         h3
-            a(href='#/' + module + '#SProperties', rel=module + '#SProperties') Properties
+            a(href=cl.module.types[0].link + '#SProperties', rel=cl.module.types[0].longName + '#SProperties') Properties
         ul
             each key in Object.keys(cl.properties).sort()
                 - var prop = cl.properties[key]
@@ -35,7 +35,7 @@ h2
                     span=' : '
                     span.returns
                         each type, j in prop.types
-                            span.returnType=type.name
+                            span.returnType=type.displayName
                             - if (j < prop.types.length - 1)
                                 span.or='|'
                     &nbsp;
@@ -43,7 +43,7 @@ h2
 - if (cl.methods && Object.keys(cl.methods).length)
     div.methods
         h3
-            a(href='#/' + module + '#SMethods', rel=module + '#SMethods') Methods
+            a(href=cl.module.types[0].link + '#SMethods', rel=cl.module.types[0].longName + '#SMethods') Methods
         ul
             each key in Object.keys(cl.methods).sort()
                 - var method = cl.methods[key]
@@ -54,7 +54,7 @@ h2
                     span.returns
                         each ret in method.returns
                             each type, j in ret.types
-                                span.returnType=type.name
+                                span.returnType=type.displayName
                                 - if (j < ret.types.length - 1)
                                     span.or='|'
                             &nbsp;
@@ -62,7 +62,7 @@ h2
 - if (cl.events && Object.keys(cl.events).length)
     div.events
         h3
-            a(href='#/' + module + '#Sevents', rel=module + '#Sevents') Events
+            a(href=cl.module.types[0].link + '#Sevents', rel=cl.module.types[0].longName + '#Sevents') Events
         ul
             each key in Object.keys(cl.events).sort()
                 - var ev = cl.events[key]

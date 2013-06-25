@@ -1,6 +1,9 @@
 'use strict';
 
 
+var util = require('./util');
+
+
 var groupModules = function(doclets) {
 
 	var ret = {};
@@ -8,11 +11,12 @@ var groupModules = function(doclets) {
 	doclets.filter(function(record) {
 		return !record.undocumented;
 	}).forEach(function(record) {
-		if (!record.moduleLongName) {
+		var moduleId = util.getModule(record);
+		if (!moduleId) {
 			return;
 		}
 
-		ret[record.moduleLongName] = ret[record.moduleLongName] || {
+		ret[moduleId] = ret[moduleId] || {
 			meta: {
 				dependencies: []
 			},
@@ -24,30 +28,30 @@ var groupModules = function(doclets) {
 		};
 
 		if (record.kind === 'module') {
-			ret[record.moduleLongName].module = record;
+			ret[moduleId].module = record;
 		}
 
 		if (record.kind === 'class' && !record.imported) {
-			ret[record.moduleLongName].constructor = record;
+			ret[moduleId].constructor = record;
 			return;
 		}
 
 		if (record.kind === 'member' || record.isEnum) {
-			if (record.memberof !== record.moduleLongName) {
+			if (record.memberof !== moduleId) {
 				//remove members of enums
 				return;
 			}
-			ret[record.moduleLongName].properties[record.name] = record;
+			ret[moduleId].properties[record.name] = record;
 			return;
 		}
 
 		if (record.kind === 'function') {
-			ret[record.moduleLongName].methods[record.name] = record;
+			ret[moduleId].methods[record.name] = record;
 			return;
 		}
 
 		if (record.kind === 'event') {
-			ret[record.moduleLongName].events[record.name] = record;
+			ret[moduleId].events[record.name] = record;
 			return;
 		}
 	});

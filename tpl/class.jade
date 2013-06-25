@@ -8,18 +8,18 @@ mixin typeDef(types)
             - clazz = clazz + ' last'
         - if (type.link)
             - var title = (type.longName === type.name) ? '' : type.longName
-            a(class=clazz, href=type.link, title=title)=type.name
+            a(class=clazz, href=type.link, title=title)=type.displayName
         - else
-            span(class=clazz)=type.name
+            span(class=clazz)=type.displayName
         - if (type.generic)
             span.generic &lt;
             each arg, j in type.args
                 - if (j !== 0)
                     span.sep=','
                 - if (arg.link)
-                    a.argType(href=arg.link, title=arg.longName)=arg.name
+                    a.argType(href=arg.link, title=arg.longName)=arg.displayName
                 - else
-                    span.argType=arg.name
+                    span.argType=arg.displayName
             span.generic &gt;
         - if (i < types.length - 1)
             span.or='|'
@@ -31,7 +31,7 @@ mixin methodDef(method)
     - if (method.isEnum)
         span.qualifier enum&nbsp;
 
-    - if (method.chainable)
+    - if (method.chainable && method.memberof === method.returns[0].types[0].longName)
         span.qualifier this&nbsp;
     - else if (method.chainable === false)
         span.qualifier new&nbsp;
@@ -85,7 +85,7 @@ mixin eventDef(event)
 
 - if (cl.module && cl.module.description)
     div.overview.section
-        h3.section-header(rel=module + '#SOverview') Overview
+        h3.section-header(rel=cl.module.types[0].longName + '#SOverview') Overview
         div.subsection
             div.meta
                 a(class='permalink', href='#/' + module + '#SOverview', alt='Permalink to ' + module + ' overview', title='Permalink to ' + module + ' overview')
@@ -94,7 +94,7 @@ mixin eventDef(event)
 
 - if (cl.module && cl.module.meta && ((cl.module.meta.dependencies && cl.module.meta.dependencies.length) || (cl.module.meta.whatrequires && cl.module.meta.whatrequires.length)))
     div.dependencies.section
-        h3.section-header(rel=module + '#SDependencies') Dependencies
+        h3.section-header(rel=cl.module.types[0].longName + '#SDependencies') Dependencies
         div.subsection
             div.meta
                 a(class='permalink', href='#/' + module + '#SDependencies', alt='Permalink to ' + module + ' dependencies', title='Permalink to ' + module + ' dependencies ')
@@ -122,7 +122,7 @@ mixin eventDef(event)
 
 - if (cl.constructor && cl.constructor.kind === 'class')
     div.constructors.section
-        h3.section-header(rel=module + '#SConstructor') Constructor
+        h3.section-header(rel=cl.module.types[0].longName + '#SConstructor') Constructor
         div.constructor.subsection
             h2.subsection-header
                 mixin methodDef(cl.constructor)
@@ -136,7 +136,7 @@ mixin eventDef(event)
 
 - if (cl.properties && Object.keys(cl.properties).length)
     div.properties.section
-        h3.section-header(rel=module + '#SProperties') Properties
+        h3.section-header(rel=cl.module.types[0].longName + '#SProperties') Properties
         each key in Object.keys(cl.properties).sort()
             - var prop = cl.properties[key]
             - var clazz = (prop.inherited || prop.overridden) ? 'inherited property subsection' : 'property subsection'
@@ -169,18 +169,18 @@ mixin eventDef(event)
                     div.inherit-info
                         div.inner
                             span inherited from&nbsp;
-                            a(title=prop.inherited.longName, href=prop.inherited.link)=prop.inherited.name
+                            a(title=prop.inherits.longName, href=prop.inherits.link)=prop.inherits.displayName
                 - if (prop.overridden)
                     div.override-info
                         div.inner
                             span overridden from&nbsp;
-                            a(title=prop.overridden.longName, href=prop.overridden.link)=prop.overridden.name
+                            a(title=prop.overrides.longName, href=prop.overrides.link)=prop.overrides.displayName
                 - if (prop.description)
                     div.description!=prop.description
 
 - if (cl.methods && Object.keys(cl.methods).length)
     div.methods.section
-        h3.section-header(rel=module + '#SMethods') Methods
+        h3.section-header(rel=cl.module.types[0].longName + '#SMethods') Methods
         each key in Object.keys(cl.methods).sort()
             - var method = cl.methods[key]
             - var clazz = (method.inherited || method.overridden) ? 'inherited method subsection' : 'method subsection'
@@ -196,7 +196,7 @@ mixin eventDef(event)
                     div.inherit-info
                         div.inner
                             span inherited from&nbsp;
-                            a(title=method.inherited.longName, href=method.inherited.link)=method.inherited.name
+                            a(title=method.inherits.longName, href=method.inherits.link)=method.inherits.displayName
                 - else if (method.imported)
                     div.import-info
                         div.inner
@@ -206,13 +206,13 @@ mixin eventDef(event)
                     div.override-info
                         div.inner
                             span overridden from&nbsp;
-                            a(title=method.overridden.longName, href=method.overridden.link)=method.overridden.name
+                            a(title=method.overrides.longName, href=method.overrides.link)=method.overrides.displayName
                 - if (method.description)
                     div.description!=method.description
 
 - if (cl.events && Object.keys(cl.events).length)
     div.events.section
-        h3.section-header(rel=module + '#SEvents') Events
+        h3.section-header(rel=cl.module.types[0].longName + '#SEvents') Events
         each key in Object.keys(cl.events).sort()
             - var ev = cl.events[key]
             - var clazz = (ev.inherited || ev.overridden) ? 'inherited event subsection' : 'event subsection'
