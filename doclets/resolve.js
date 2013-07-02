@@ -24,12 +24,6 @@ var _longestCommonSubstring = function(first, second) {
 
 
 var resolve = function(doclets, namepath) {
-	/*
-	 *if (namepath.search(/deferreds\/Promise/) !== -1) {
-	 *    console.log(namepath);
-	 *}
-	 */
-
 	var longNames = {};
 
 	var exactMatch;
@@ -51,7 +45,7 @@ var resolve = function(doclets, namepath) {
 	forOwn(longNames, function(record, longname) {
 		//since we have an idea of namepath formatting, do lcs against groups
 		//of characters rather than per-character (performance)
-		var lcs = _longestCommonSubstring(longname.split(/[:\/~#\.]/), namepath.split(/[:\/~#\.]/));
+		var lcs = _longestCommonSubstring(longname.split(/[:\/]/), namepath.split(/[:\/]/));
 		if (lcs.length) {
 			max = Math.max(max, lcs.length);
 			matches.push({

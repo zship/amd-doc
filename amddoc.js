@@ -1,7 +1,7 @@
 'use strict';
 
 
-var fs = require('fs');
+//var fs = require('fs');
 var path = require('path');
 var grunt = require('grunt/lib/grunt.js');
 var _ = require('underscore');
@@ -9,7 +9,6 @@ var constants = require('./constants.js');
 var Deferred = require('deferreds/Deferred');
 var pipe = require('deferreds/pipe');
 var loadConfig = require('amd-tools/util/loadConfig');
-var forOwn = require('mout/object/forOwn');
 var map = require('mout/object/map');
 var isPlainObject = require('mout/lang/isPlainObject');
 var isArray = require('mout/lang/isArray');
@@ -17,22 +16,24 @@ var isArray = require('mout/lang/isArray');
 var util = require('./doc/util.js');
 var Stopwatch = require('./doc/Stopwatch.js');
 
-var Types = require('./doc/Types.js');
+//var Types = require('./doc/Types.js');
 var runJsdoc = require('./doc/runJsdoc.js');
-var massageJsdoc = require('./doc/massageJsdoc.js');
-var mixinMarkdown = require('./doc/mixinMarkdown.js');
-var transformLongNames = require('./doc/transformLongNames.js');
-var parseMarkdown = require('./doc/parseMarkdown.js');
-var mixinInherited = require('./doc/mixinInherited.js');
+/*
+ *var massageJsdoc = require('./doc/massageJsdoc.js');
+ *var mixinMarkdown = require('./doc/mixinMarkdown.js');
+ *var transformLongNames = require('./doc/transformLongNames.js');
+ *var parseMarkdown = require('./doc/parseMarkdown.js');
+ *var mixinInherited = require('./doc/mixinInherited.js');
+ */
 var renderModule = require('./doc/renderModule.js');
 var renderTaglist = require('./doc/renderTaglist.js');
 var renderMenu = require('./doc/renderMenu.js');
-var printSummary = require('./doc/printSummary.js');
-var traceDependencies = require('./doc/traceDependencies.js');
+//var printSummary = require('./doc/printSummary.js');
+//var traceDependencies = require('./doc/traceDependencies.js');
 var withModuleInfo = require('./doc/withModuleInfo');
 var withLinkedDependencies = require('./doc/withLinkedDependencies');
 var withMarkdownDescriptions = require('./doc/withMarkdownDescriptions');
-var withMultipleInheritance = require('./doc/withMultipleInheritance');
+var withInferredInheritance = require('./doc/withInferredInheritance');
 var withRenderedMarkdown = require('./doc/withRenderedMarkdown');
 var withLinkedTypes = require('./doc/withLinkedTypes');
 var groupModules = require('./doc/groupModules');
@@ -126,7 +127,7 @@ amddoc.compile = function(opts) {
 		function() {
 			grunt.log.writeln('');
 			grunt.log.writeln('Tracing AMD dependencies...');
-			return traceDependencies(files, rjsconfig);
+			//return traceDependencies(files, rjsconfig);
 		},
 
 
@@ -180,7 +181,7 @@ amddoc.compile = function(opts) {
 			 *}
 			 */
 
-			result = withMultipleInheritance(result);
+			result = withInferredInheritance(result, rjsconfig);
 			//console.log(JSON.stringify(result, false, 4));
 
 
@@ -188,6 +189,44 @@ amddoc.compile = function(opts) {
 				if (opts.types) {
 					type.link = opts.types(type.longName, type.own);
 				}
+
+				//link MDN documentation for global objects
+				type.link = type.link || (function() {
+					var link;
+					var parts = type.longName.split(/[#~\.]/);
+
+					switch (parts[0]) {
+						case 'Number':
+						case 'String':
+						case 'Object':
+						case 'Function':
+						case 'Array':
+						case 'RegExp':
+						case 'Boolean':
+							link = 'https://developer.mozilla.org/en-US/docs/JavaScript/Reference/Global_Objects/' + parts[0];
+						break;
+						case 'Any':
+							link = 'https://developer.mozilla.org/en-US/docs/JavaScript/Reference/Global_Objects';
+						break;
+						case 'void':
+						case 'undefined':
+							link = 'https://developer.mozilla.org/en-US/docs/JavaScript/Reference/Global_Objects/undefined';
+						break;
+						case 'Element':
+							link = 'https://developer.mozilla.org/en-US/docs/DOM/element';
+						break;
+						case 'Constructor':
+							link = 'https://developer.mozilla.org/en-US/docs/JavaScript/Reference/Global_Objects/Object/constructor';
+						break;
+					}
+
+					if (link && parts[1]) {
+						link += '/' + parts[1];
+					}
+
+					return link;
+				})();
+
 				type.displayName = (function() {
 					var name = type.longName.replace(/module:/, '').trim();
 
@@ -218,7 +257,7 @@ amddoc.compile = function(opts) {
 			};
 			result = withLinkedTypes(result, transformer);
 			//console.log(JSON.stringify(result, false, 4));
-			//
+
 			result = result.map(function(record) {
 				if (!record.meta) {
 					return;
