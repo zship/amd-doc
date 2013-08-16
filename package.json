@@ -2,7 +2,7 @@
 	"name": "amd-doc",
 	"title": "amd-doc",
 	"description": "Documentation generator for AMD-based projects",
-	"version": "0.2.1",
+	"version": "0.2.2",
 	"homepage": "https://github.com/zship/amd-doc",
 	"author": "Zach Shipley <zach@zachshipley.com>",
 	"repository": {
@@ -20,7 +20,7 @@
 		"marked": "0.2.x",
 		"highlight.js": "7.3.x",
 		"taffy": "2.6.x",
-		"jsdoc": "git+https://github.com/jsdoc3/jsdoc.git#v3.1.1"
+		"jsdoc": "git+https://github.com/jsdoc3/jsdoc.git#v3.2.0"
 	},
 	"keywords": [
 		"gruntplugin",

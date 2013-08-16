@@ -18,11 +18,6 @@ var runJsdoc = function(files) {
 			throw new Error(error);
 		}
 
-		//strip out error-causing lines
-		stdout = stdout.replace(/<CircularRef>/gm, "\"CircularRef\"");
-		stdout = stdout.replace(/<Object>/gm, "\"Object\"");
-		stdout = stdout.replace(/:\sundefined/gm, ": \"undef\"");
-
 		var result = JSON.parse(stdout);
 		deferred.resolve({out: result});
 	});
